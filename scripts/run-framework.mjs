@@ -54,8 +54,25 @@ if (command === "build") {
     fs.writeFileSync(path.join(nextStandaloneDir, "package.json"), pkgContent);
 
     const serverJsContent = `import http from 'node:http';
+import path from 'node:path';
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
+
+const mimeTypes = {
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.svg': 'image/svg+xml',
+  '.json': 'application/json',
+  '.woff2': 'font/woff2',
+  '.woff': 'font/woff',
+  '.ico': 'image/x-icon',
+};
 
 async function startServer() {
   const handlerModule = await import('./server/index.js');
@@ -66,6 +83,16 @@ async function startServer() {
       const protocol = req.headers['x-forwarded-proto'] || 'http';
       const host = req.headers.host || \`localhost:\${PORT}\`;
       const url = new URL(req.url || '/', \`\${protocol}://\${host}\`);
+
+      const clientFilePath = path.join(__dirname, 'client', url.pathname);
+      if (fs.existsSync(clientFilePath) && fs.statSync(clientFilePath).isFile()) {
+        const ext = path.extname(clientFilePath).toLowerCase();
+        res.statusCode = 200;
+        res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream');
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        fs.createReadStream(clientFilePath).pipe(res);
+        return;
+      }
 
       const headers = new Headers();
       for (const [key, val] of Object.entries(req.headers)) {
