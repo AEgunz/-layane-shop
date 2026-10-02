@@ -1,4 +1,4 @@
-import {db,brand,error,originCheck} from '@/lib/store';
+import {db,brand,error,originCheck,getAdmins} from '@/lib/store';
 import {getChatGPTUser} from '@/app/chatgpt-auth';
 import {z} from 'zod';
 export const dynamic='force-dynamic';
@@ -20,9 +20,17 @@ export async function POST(r:Request){
     const x:any=await r.json();
 
     if(x.action==='login'){
-      const username=String(x.username||'').trim();
+      const username=String(x.username||'').trim().toLowerCase();
       const password=String(x.password||'').trim();
-      if((username==='admin'||username==='layane')&&(password==='layane2026'||password==='admin'||password==='123456'||password==='layaneshop')){
+
+      const adminsList = await getAdmins();
+      const matchedAdmin = adminsList.find((a: any) =>
+        String(a.username).toLowerCase() === username && String(a.password) === password
+      );
+
+      const isDefaultAdmin = (username==='admin'||username==='layane') && (password==='layane2026'||password==='admin'||password==='123456'||password==='layaneshop');
+
+      if (matchedAdmin || isDefaultAdmin) {
         const headers=new Headers({'Content-Type':'application/json'});
         headers.append('Set-Cookie',`admin_session=logged_in; Path=/; HttpOnly; Max-Age=${60*60*24*30}; SameSite=Lax`);
         return new Response(JSON.stringify({ok:true}),{status:200,headers});

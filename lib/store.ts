@@ -96,6 +96,18 @@ export async function brand(){
   }
 }
 
+export async function getAdmins() {
+  try {
+    const row = await db().prepare("SELECT value FROM settings WHERE key='admins'").first<{value:string}>();
+    if (row && row.value) {
+      return JSON.parse(row.value);
+    }
+  } catch {}
+  return [
+    { id: 'default-admin', name: 'المشرف الرئيسي', username: 'admin', password: 'layane2026', role: 'admin' }
+  ];
+}
+
 export async function admin(){
   try {
     const cookieStore = await cookies();

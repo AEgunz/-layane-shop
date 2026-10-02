@@ -1,6 +1,6 @@
 'use client';
 import {useState,useEffect,useCallback} from 'react';
-import {LayoutDashboard,PanelsTopLeft,ShoppingBag,ChartNoAxesCombined,Settings,Plus,Leaf,ArrowUpRight,Globe,MousePointer2,Wallet,Search,ChevronDown,Download,ExternalLink,Copy,Pencil,X,Monitor,Smartphone,Check,Archive,RefreshCw,ImagePlus,ArrowLeft,ArrowRight,Eye,ShieldCheck,Upload,LogOut} from 'lucide-react';
+import {LayoutDashboard,PanelsTopLeft,ShoppingBag,ChartNoAxesCombined,Settings,Plus,Leaf,ArrowUpRight,Globe,MousePointer2,Wallet,Search,ChevronDown,Download,ExternalLink,Copy,Pencil,X,Monitor,Smartphone,Check,Archive,RefreshCw,ImagePlus,ArrowLeft,ArrowRight,Eye,ShieldCheck,Upload,LogOut,UserPlus} from 'lucide-react';
 import {Logo,ProductView} from './storefront';
 import JSZip from 'jszip';
 
@@ -220,6 +220,105 @@ function MultiImageUploader({images,onChange}:any){
   );
 }
 
+function AdminManager({ admins, onReload }: any) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [newAdmin, setNewAdmin] = useState({ name: '', username: '', password: '' });
+
+  async function handleAddAdmin(e: any) {
+    e.preventDefault();
+    setBusy(true);
+    setError('');
+    try {
+      await api({ action: 'add_admin', admin: newAdmin });
+      setNewAdmin({ name: '', username: '', password: '' });
+      await onReload();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleDeleteAdmin(id: string) {
+    if (!window.confirm('هل أنت متأكد من حذف هذا الحساب المشرف؟')) return;
+    setBusy(true);
+    try {
+      await api({ action: 'delete_admin', id });
+      await onReload();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="panel" style={{ marginTop: '25px' }}>
+      <div className="panelhead">
+        <div>
+          <h2>إدارة المشرفين والحسابات (Team Administrators)</h2>
+          <p>إضافة أو تعديل الحسابات المسموح لها بالدخول إلى لوحة التحكم</p>
+        </div>
+        <ShieldCheck size={20} />
+      </div>
+      <div className="settingsbody">
+        {error && <p className="error" style={{ marginBottom: '15px' }}>{error}</p>}
+        {admins && admins.length > 0 && (
+          <div className="tablewrap" style={{ marginBottom: '22px' }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>اسم المشرف</th>
+                  <th>اسم المستخدم (Username)</th>
+                  <th>كلمة المرور</th>
+                  <th>الرتبة</th>
+                  <th>إجراء</th>
+                </tr>
+              </thead>
+              <tbody>
+                {admins.map((a: any) => (
+                  <tr key={a.id || a.username}>
+                    <td className="strong">{a.name}</td>
+                    <td><code style={{ background: '#eef3eb', padding: '3px 8px', borderRadius: '4px', color: '#205b44', fontWeight: '700' }}>{a.username}</code></td>
+                    <td>••••••••</td>
+                    <td><span className="pill published">Admin</span></td>
+                    <td>
+                      {a.id !== 'default-admin' && (
+                        <button type="button" className="iconbutton" title="حذف" onClick={() => handleDeleteAdmin(a.id)} style={{ color: '#d32f2f' }}>
+                          <X size={16} />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        <form onSubmit={handleAddAdmin} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: '12px', alignItems: 'flex-end', background: '#fafbf9', padding: '18px', borderRadius: '12px', border: '1px solid #e1e9df' }}>
+          <label style={{ margin: 0, fontSize: '13px', fontWeight: '700' }}>
+            اسم المشرف (Name)
+            <input required placeholder="مثال: أحمد" value={newAdmin.name} onChange={e => setNewAdmin({ ...newAdmin, name: e.target.value })} dir="auto" style={{ marginTop: '6px' }} />
+          </label>
+          <label style={{ margin: 0, fontSize: '13px', fontWeight: '700' }}>
+            اسم المستخدم (Username)
+            <input required placeholder="مثال: ahmed" value={newAdmin.username} onChange={e => setNewAdmin({ ...newAdmin, username: e.target.value })} dir="ltr" style={{ marginTop: '6px' }} />
+          </label>
+          <label style={{ margin: 0, fontSize: '13px', fontWeight: '700' }}>
+            كلمة المرور (Password)
+            <input required type="password" placeholder="••••••••" value={newAdmin.password} onChange={e => setNewAdmin({ ...newAdmin, password: e.target.value })} dir="ltr" style={{ marginTop: '6px' }} />
+          </label>
+          <button type="submit" className="primary" disabled={busy} style={{ height: '42px', padding: '0 20px', whiteSpace: 'nowrap' }}>
+            {busy ? 'جار الحفظ…' : 'إضافة مشرف جديد'}
+          </button>
+        </form>
+      </div>
+    </section>
+  );
+}
+
 export default function Studio(){
   const [tab,setTab]=useState('Overview');
   const [data,setData]=useState<any>(null);
@@ -346,12 +445,44 @@ export default function Studio(){
   <ImageField value={editor.image||''} onChange={(image:string)=>setEditor({...editor,image})} label="صورة البانر الرئيسية (Single Banner Image)"/>
   <ImageField value={editor.reviewsImage||''} onChange={(reviewsImage:string)=>setEditor({...editor,reviewsImage})} label="صورة آراء وتقييمات الزبناء (Customer Reviews Image)"/>
   <label>اسم المنتج (Product Name)<input dir="auto" required maxLength={120} value={editor.name} onChange={e=>setEditor({...editor,name:e.target.value})}/></label><label>رابط الصفحة (Page URL Slug)<input pattern="[a-z0-9]+(-[a-z0-9]+)*" required value={editor.slug} onChange={e=>setEditor({...editor,slug:e.target.value.toLowerCase().replaceAll(' ','-')})}/><small>/p/{editor.slug}</small></label><div className="formgrid"><label>السعر (Price DH)<input type="number" min="1" step="0.01" value={editor.price} onChange={e=>setEditor({...editor,price:+e.target.value})}/></label><label>السعر قبل التخفيض (DH)<input type="number" min="0" step="0.01" value={editor.comparePrice} onChange={e=>setEditor({...editor,comparePrice:+e.target.value})}/></label></div><div className="formgrid"><label>مصاريف التوصيل (DH)<input type="number" min="0" step="0.01" value={editor.shipping} onChange={e=>setEditor({...editor,shipping:+e.target.value})}/><small>0 = توصيل مجاني</small></label><label>نص زر الطلب<input dir="auto" value={editor.cta||'اطلب الآن'} onChange={e=>setEditor({...editor,cta:e.target.value})}/></label></div><label>لغة الصفحة<select value={editor.language||'ar'} onChange={e=>setEditor({...editor,language:e.target.value})}><option value="ar">العربية (right to left)</option><option value="en">English</option><option value="fr">Français</option></select></label></div></form></div><div className="previewarea"><div className="previewbar"><span><Eye size={15}/>Live preview</span><div><button aria-label="Desktop preview" className={!mobile?'active':''} onClick={()=>setMobile(false)}><Monitor size={17}/></button><button aria-label="Mobile preview" className={mobile?'active':''} onClick={()=>setMobile(true)}><Smartphone size={17}/></button></div><span>Unsaved changes shown</span></div><div className={'previewframe '+(mobile?'mobile':'')}><ProductView key={editor.id} page={editor} brand={b} preview/></div></div></div></div>:<div className="content"><div className="pagetitle"><div><div className="eyebrow">{tab==='Overview'?'YOUR BUSINESS, AT A GLANCE':tab==='Landing pages'?'YOUR PRODUCTS, THEIR OWN SPOTLIGHT':tab==='Orders'?'EVERY ORDER, ONE PLACE':tab==='Analytics'?'UNDERSTAND WHAT WORKS':'ONE IDENTITY, EVERYWHERE'}</div><h1>{tab==='Overview'?'Store overview':tab}</h1><p>{tab==='Overview'?'Every product. Every order. One place.':tab==='Landing pages'?'Create, customize, and grow your product storefronts.':tab==='Orders'?'From first click to doorstep. Keep every order moving.':tab==='Analytics'?'See how your pages turn visitors into customers.':'Keep every storefront unmistakably yours.'}</p></div>{tab==='Landing pages'||tab==='Overview'?<button className="primary" onClick={()=>newPage()}><Plus size={18}/>Create landing page</button>:tab==='Orders'?<button onClick={()=>exportOrders(visibleOrders)} disabled={!visibleOrders.length}><Download size={17}/>Export orders</button>:null}</div>
-  {(tab==='Overview'||tab==='Analytics')&&<><div className="periodrow"><span>Store performance</span>{dateControl}</div>{metrics}<div className="overviewgrid"><section className="panel"><div className="panelhead"><div><h2>Traffic overview</h2><p>Your visits over the last 7 days</p></div><span className="legend"><i/>Page visits</span></div><div className="chart"><div className="chartbars">{Array.from({length:7},(_,i)=>{const day=new Date(Date.now()-(6-i)*86400000).toISOString().slice(0,10);const v=data.visits.filter((x:any)=>x.day===day).reduce((n:number,x:any)=>n+x.count,0);const max=Math.max(1,...Array.from({length:7},(_,j)=>data.visits.filter((x:any)=>x.day===new Date(Date.now()-j*86400000).toISOString().slice(0,10)).reduce((n:number,x:any)=>n+x.count,0)));return <div key={day}><span>{v}</span><div className="bar" style={{height:Math.max(2,v/max*120)+'px'}}/><small>{new Date(day+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</small></div>})}</div></div></section><section className="panel storehealth"><div className="panelhead"><h2>Store snapshot</h2><Globe size={18}/></div><div className="snapshot"><div><span>Published pages</span><strong>{pages.filter((p:any)=>p.status==='published').length}<small>of {pages.length} total</small></strong></div><div><span>Open order value</span><strong>{money(activeOrders.filter((o:any)=>o.status!=='delivered').reduce((n:number,o:any)=>n+o.total,0))}</strong></div><div><span>Awaiting confirmation</span><strong>{newOrders}</strong></div></div><button className="textbutton" onClick={()=>navigate('Orders')}>Manage your orders<ArrowUpRight size={16}/></button></section></div></>}
+  {(tab==='Overview'||tab==='Analytics')&&<><div className="periodrow"><span>Store performance</span>{dateControl}</div>{metrics}<div className="overviewgrid"><section className="panel"><div className="panelhead"><div><h2>Traffic overview</h2><p>Your visits over the last 7 days</p></div><span className="legend"><i/>Page visits</span></div><div className="chart"><div className="chartbars">{Array.from({length:7},(_,i)=>{const day=new Date(Date.now()-(6-i)*86400000).toISOString().slice(0,10);const v=data.visits.filter((x:any)=>x.page_id===p.id).reduce((n:number,x:any)=>n+x.count,0);const max=Math.max(1,...Array.from({length:7},(_,j)=>data.visits.filter((x:any)=>x.day===new Date(Date.now()-j*86400000).toISOString().slice(0,10)).reduce((n:number,x:any)=>n+x.count,0)));return <div key={day}><span>{v}</span><div className="bar" style={{height:Math.max(2,v/max*120)+'px'}}/><small>{new Date(day+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</small></div>})}</div></div></section><section className="panel storehealth"><div className="panelhead"><h2>Store snapshot</h2><Globe size={18}/></div><div className="snapshot"><div><span>Published pages</span><strong>{pages.filter((p:any)=>p.status==='published').length}<small>of {pages.length} total</small></strong></div><div><span>Open order value</span><strong>{money(activeOrders.filter((o:any)=>o.status!=='delivered').reduce((n:number,o:any)=>n+o.total,0))}</strong></div><div><span>Awaiting confirmation</span><strong>{newOrders}</strong></div></div><button className="textbutton" onClick={()=>navigate('Orders')}>Manage your orders<ArrowUpRight size={16}/></button></section></div></>}
   {tab==='Overview'&&<><section className="panel"><div className="panelhead"><div><h2>Your landing pages</h2><p>A dedicated storefront for every product.</p></div><button className="textbutton" onClick={()=>navigate('Landing pages')}>View all pages<ArrowUpRight size={16}/></button></div>{pages.filter((p:any)=>p.status!=='archived').slice(0,2).map((p:any)=><div className="productrow" key={p.id}>{p.image?<img src={p.image} alt={p.name}/>:<div className="productplaceholder"><ShoppingBag/></div>}<div><h3>{p.name}</h3><p>/p/{p.slug}</p><Badge status={p.status}/></div><div className="price">{money(p.price)}<small>Product price</small></div><button onClick={()=>{setEditor({...p});setTab('Landing pages')}}><Pencil size={15}/>Edit page</button></div>)}</section><section className="panel"><div className="panelhead"><div><h2>Recent orders</h2><p>The latest from all your storefronts.</p></div><button className="textbutton" onClick={()=>navigate('Orders')}>View all orders<ArrowUpRight size={16}/></button></div>{orderTable(allOrders.slice(0,5))}</section></>}
   {tab==='Landing pages'&&<><div className="toolbar"><div className="tabs">{['all','published','draft','archived'].map(t=><button key={t} className={filter===t?'active':''} onClick={()=>setFilter(t)}>{t==='all'?'All pages':t[0].toUpperCase()+t.slice(1)} <span>{t==='all'?pages.length:pages.filter((p:any)=>p.status===t).length}</span></button>)}</div><div className="search"><Search size={17}/><input aria-label="Search pages" placeholder="Search your pages…" value={query} onChange={e=>setQuery(e.target.value)}/></div></div><div className="pagegrid">{visiblePages.map((p:any)=><article className="pagecard" key={p.id}><div className={'pagecover '+p.template}>{p.image?<img src={p.image} alt={p.name}/>:<div className="blankcover"><Leaf size={40}/><strong>{b.name}</strong></div>}<Badge status={p.status}/></div><div className="pageinfo"><h2>{p.name}</h2><div className="pageurl">/p/{p.slug}<button className="iconbutton" title="Copy page URL" onClick={async()=>{try{await navigator.clipboard.writeText(location.origin+'/p/'+p.slug);setToast('Page URL copied.')}catch{setToast('Your page URL is /p/'+p.slug)}}}><Copy size={14}/></button></div><div className="pagestats"><span><strong>{money(p.price)}</strong><small>Price</small></span><span><strong>{allOrders.filter((o:any)=>o.page_id===p.id).length}</strong><small>Orders</small></span><span><strong>{data.visits.filter((v:any)=>v.page_id===p.id).reduce((n:number,v:any)=>n+v.count,0)}</strong><small>Visits</small></span></div><div className="pageactions"><button onClick={()=>{setEditor({...p});setTab('Landing pages')}}><Pencil size={15}/>Edit page</button>{p.status==='published'&&<a className="button iconbutton" href={'/p/'+p.slug} target="_blank" rel="noreferrer" title="View published page"><ExternalLink size={16}/></a>}<button className="iconbutton" title="Duplicate page" disabled={busy} onClick={()=>duplicate(p)}><Copy size={16}/></button><button className="iconbutton" title={p.status==='archived'?'Restore draft':'Archive page'} disabled={busy} onClick={()=>{if(p.status==='archived'||window.confirm('Archive this page? Its URL will stop accepting orders. Existing orders will remain.'))save({action:'page',page:{...p,status:p.status==='archived'?'draft':'archived'}},p.status==='archived'?'Page restored as draft.':'Page archived.')}}><Archive size={16}/></button></div></div></article>)}<button className="newpagecard" onClick={()=>newPage()}><span><Plus size={26}/></span><strong>Your next bestseller</strong><p>Give a new product its own page.</p><span className="newpagelink">Create landing page</span></button></div></>}
   {tab==='Orders'&&<section className="panel"><div className="toolbar ordertoolbar"><div className="search"><Search size={17}/><input aria-label="Search orders" placeholder="Search customer, phone, product…" value={query} onChange={e=>setQuery(e.target.value)}/></div><div className="toolbarcontrols"><select aria-label="Order status" value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">All statuses</option>{['new','confirmed','shipped','delivered','cancelled'].map(s=><option key={s}>{s}</option>)}</select>{dateControl}</div></div>{orderTable(visibleOrders)}<div className="tablefoot">{visibleOrders.length} order{visibleOrders.length!==1?'s':''} · Sales are counted when an order is delivered.</div></section>}
   {tab==='Analytics'&&<><section className="panel"><div className="panelhead"><div><h2>Product performance</h2><p>Compare every landing page in the selected period.</p></div><span className="muted">{pages.length} products</span></div>{performance}</section><div className="infobox"><ChartNoAxesCombined size={22}/><p>Visits count each browser session once per product per day. Administrator previews are excluded. Conversion is placed orders divided by visits; sales include delivered orders only. Dates are recorded in UTC.</p></div></>}
-  {tab==='Brand settings'&&<form onSubmit={async e=>{e.preventDefault();const r=await save({action:'brand',brand:branding||b},'Brand updated across every landing page.');if(r)setBranding(null)}}><div className="settingsgrid"><div><section className="panel"><div className="panelhead"><div><h2>Brand identity</h2><p>Changes apply to the dashboard and all product pages.</p></div><Globe size={20}/></div><div className="settingsbody"><label>Brand name<input required maxLength={60} value={(branding||b).name} onChange={e=>setBranding({...branding||b,name:e.target.value})}/></label><label>Tagline<input maxLength={120} value={(branding||b).tagline} onChange={e=>setBranding({...branding||b,tagline:e.target.value})}/></label><ImageField label="Global logo" value={(branding||b).logo} onChange={(logo:string)=>setBranding({...branding||b,logo})}/><label>Brand color<div className="colorinput"><input aria-label="Choose brand color" type="color" value={(branding||b).color} onChange={e=>setBranding({...branding||b,color:e.target.value})}/><input pattern="#[a-fA-F0-9]{6}" value={(branding||b).color} onChange={e=>setBranding({...branding||b,color:e.target.value})}/></div></label><label>Customer support phone<input value={(branding||b).phone} onChange={e=>setBranding({...branding||b,phone:e.target.value})} placeholder="+212 …"/></label><label>Currency<input value="Moroccan dirham (MAD / DH)" disabled/></label></div><div className="panelfoot"><button className="primary" disabled={busy}>{busy?'Saving…':'Save brand settings'}</button></div></section></div><div><section className="panel brandpreview"><div className="panelhead"><h2>Brand preview</h2></div><div style={{'--brand':(branding||b).color} as any}><Logo brand={branding||b}/><div className="brandpreviewhero"><Leaf size={40}/><h2>Your brand.<br/>Every storefront.</h2><span className="storebutton">Order now</span></div></div></section><div className="infobox"><ShieldCheck size={23}/><p>Only the store administrator can access orders and edit settings. Your site starts private; you can share it when you’re ready.</p></div></div></div></form>}
+  {tab==='Brand settings'&&(
+    <div>
+      <form onSubmit={async e=>{e.preventDefault();const r=await save({action:'brand',brand:branding||b},'Brand updated across every landing page.');if(r)setBranding(null)}}>
+        <div className="settingsgrid">
+          <div>
+            <section className="panel">
+              <div className="panelhead"><div><h2>Brand identity</h2><p>Changes apply to the dashboard and all product pages.</p></div><Globe size={20}/></div>
+              <div className="settingsbody">
+                <label>Brand name<input required maxLength={60} value={(branding||b).name} onChange={e=>setBranding({...branding||b,name:e.target.value})}/></label>
+                <label>Tagline<input maxLength={120} value={(branding||b).tagline} onChange={e=>setBranding({...branding||b,tagline:e.target.value})}/></label>
+                <ImageField label="Global logo" value={(branding||b).logo} onChange={(logo:string)=>setBranding({...branding||b,logo})}/>
+                <label>Brand color<div className="colorinput"><input aria-label="Choose brand color" type="color" value={(branding||b).color} onChange={e=>setBranding({...branding||b,color:e.target.value})}/><input pattern="#[a-fA-F0-9]{6}" value={(branding||b).color} onChange={e=>setBranding({...branding||b,color:e.target.value})}/></div></label>
+                <label>Customer support phone<input value={(branding||b).phone} onChange={e=>setBranding({...branding||b,phone:e.target.value})} placeholder="+212 …"/></label>
+                <label>Currency<input value="Moroccan dirham (MAD / DH)" disabled/></label>
+              </div>
+              <div className="panelfoot"><button className="primary" disabled={busy}>{busy?'Saving…':'Save brand settings'}</button></div>
+            </section>
+          </div>
+          <div>
+            <section className="panel brandpreview">
+              <div className="panelhead"><h2>Brand preview</h2></div>
+              <div style={{'--brand':(branding||b).color} as any}>
+                <Logo brand={branding||b}/>
+                <div className="brandpreviewhero"><Leaf size={40}/><h2>Your brand.<br/>Every storefront.</h2><span className="storebutton">Order now</span></div>
+              </div>
+            </section>
+            <div className="infobox"><ShieldCheck size={23}/><p>Only the store administrator can access orders and edit settings. Your site starts private; you can share it when you’re ready.</p></div>
+          </div>
+        </div>
+      </form>
+      <AdminManager admins={data.admins||[]} onReload={reload} />
+    </div>
+  )}
   <div className="workspacefooter"><span>{b.name} Store Studio</span><span>Built for your next chapter.</span></div></div>}</main>
   {detail&&<div className="modalbackdrop" onClick={()=>setDetail(null)}><section className="modal ordermodal" role="dialog" aria-modal="true" aria-label="Order details" onClick={e=>e.stopPropagation()}><button className="close iconbutton" onClick={()=>setDetail(null)} aria-label="Close"><X size={20}/></button><div className="eyebrow">ORDER #{detail.id.slice(0,8).toUpperCase()}</div><h1>{detail.customer}</h1><p>{niceDate(detail.created_at)}</p><div className="detailgrid"><div><h3>Customer details</h3><a href={'tel:'+detail.phone}>{detail.phone}</a><p>{detail.address}<br/>{detail.city}</p></div><div><h3>Order summary</h3><p>{detail.product}<br/>{detail.quantity} × {money(detail.unit_price)}<br/>Delivery: {money(detail.shipping)}</p><strong>{money(detail.total)}</strong></div></div>{detail.notes&&<div className="infobox"><p>{detail.notes}</p></div>}<form onSubmit={async e=>{e.preventDefault();const r=await save({action:'status',id:detail.id,status:detail.status},'Order status updated.');if(r)setDetail(null)}}><label>Order status<select value={detail.status} onChange={e=>setDetail({...detail,status:e.target.value})}>{['new','confirmed','shipped','delivered','cancelled'].map(s=><option key={s}>{s}</option>)}</select></label><button className="primary" disabled={busy}>{busy?'Saving…':'Update status'}</button></form></section></div>}</div>
 }
