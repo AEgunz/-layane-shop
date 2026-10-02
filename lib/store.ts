@@ -95,8 +95,12 @@ function getSupabaseD1() {
           return [];
         }
 
-        if (this.sql.includes('SELECT value FROM settings WHERE key=?')) {
-          const key = this.params[0];
+        if (this.sql.includes('SELECT value FROM settings')) {
+          let key = 'brand';
+          if (this.params[0]) key = this.params[0];
+          else if (this.sql.includes("'brand'")) key = 'brand';
+          else if (this.sql.includes("'admins'")) key = 'admins';
+
           const res = await fetch(`${cleanUrl}/rest/v1/settings?key=eq.${encodeURIComponent(key)}&select=value`, {
             headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` }
           });
@@ -105,7 +109,11 @@ function getSupabaseD1() {
         }
 
         if (this.sql.includes('DELETE FROM settings')) {
-          const key = this.params[0] || 'admins';
+          let key = 'admins';
+          if (this.params[0]) key = this.params[0];
+          else if (this.sql.includes("'brand'")) key = 'brand';
+          else if (this.sql.includes("'admins'")) key = 'admins';
+
           await fetch(`${cleanUrl}/rest/v1/settings?key=eq.${encodeURIComponent(key)}`, {
             method: 'DELETE',
             headers: {
@@ -117,7 +125,17 @@ function getSupabaseD1() {
         }
 
         if (this.sql.includes('INSERT INTO settings') || this.sql.includes('UPDATE settings')) {
-          const [key, value] = this.params;
+          let key = 'admins';
+          let value = '';
+          if (this.params.length === 2) {
+            key = this.params[0];
+            value = this.params[1];
+          } else if (this.params.length === 1) {
+            value = this.params[0];
+            if (this.sql.includes("'brand'")) key = 'brand';
+            if (this.sql.includes("'admins'")) key = 'admins';
+          }
+
           await fetch(`${cleanUrl}/rest/v1/settings`, {
             method: 'POST',
             headers: {
