@@ -6,8 +6,33 @@ export const dynamic='force-dynamic';
 export async function GET(r:Request){
   try{
     const slug=new URL(r.url).searchParams.get('slug');
-    const row=await db().prepare("SELECT data FROM pages WHERE slug=? AND status='published'").bind(slug).first<{data:string}>();
-    if(!row)return Response.json({error:'This page is not available.'},{status:404});
+    let row: any = null;
+    if (slug && slug !== 'default') {
+      row = await db().prepare("SELECT data FROM pages WHERE slug=? AND status='published'").bind(slug).first<{data:string}>();
+    }
+    if (!row) {
+      row = await db().prepare("SELECT data FROM pages WHERE status='published' ORDER BY rowid ASC").first<{data:string}>();
+    }
+    if (!row) {
+      // Fallback default sample product if database has no published pages yet
+      const defaultPage = {
+        id: 'default-product',
+        name: 'layane-shop Store',
+        slug: 'home',
+        price: 199,
+        comparePrice: 299,
+        shipping: 0,
+        status: 'published',
+        template: 'editorial',
+        language: 'ar',
+        headline: 'مرحباً بكم في متجر layane-shop الرسمي',
+        description: 'أجود المنتجات الطبيعية عالية الجودة المعروضة بأسعار مميزة مع خدمة التوصيل السريع والدفع عند الاستلام.',
+        cta: 'اطلب الآن',
+        benefits: 'توصيل سريع مجاني لكافة المدن المغربية\nضمان الجودة والرضا التام 100%\nالدفع نقداً بعد معاينة الشحنة عند الاستلام',
+        createdAt: new Date().toISOString()
+      };
+      return Response.json({ page: defaultPage, brand: await brand() }, { headers: { 'Cache-Control': 'no-store' } });
+    }
     return Response.json({page:JSON.parse(row.data),brand:await brand()},{headers:{'Cache-Control':'no-store'}})
   }catch(e){
     return error(e)
