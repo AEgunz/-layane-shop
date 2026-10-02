@@ -8,8 +8,13 @@ export const metadata: Metadata = {
     "codex-preview": "development",
   },
   icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
+    icon: [
+      { url: "/icon.png" },
+      { url: "/favicon.ico" },
+      { url: "/favicon.svg" },
+    ],
+    shortcut: "/icon.png",
+    apple: "/icon.png",
   },
 };
 
@@ -24,4 +29,3 @@ export default function RootLayout({
     </html>
   );
 }
-

@@ -2,8 +2,9 @@ import {getChatGPTUser} from '@/app/chatgpt-auth';
 import {ZodError} from 'zod';
 import path from 'node:path';
 import fs from 'node:fs';
+import {cookies} from 'next/headers';
 
-export const defaultBrand={name:'layane-shop',tagline:'Care for your everyday',color:'#205b44',logo:'',phone:'',currency:'MAD'};
+export const defaultBrand={name:'layane-shop',tagline:'Care for your everyday',color:'#205b44',logo:'/logo.png',phone:'',currency:'MAD'};
 
 let nodeD1Instance: any = null;
 
@@ -82,25 +83,37 @@ export function db() {
 export async function brand(){
   try {
     const row=await db().prepare("SELECT value FROM settings WHERE key='brand'").first<{value:string}>();
-    return row?JSON.parse(row.value):defaultBrand;
+    if (row) {
+      const parsed = JSON.parse(row.value);
+      if (!parsed.logo) parsed.logo = '/logo.png';
+      return parsed;
+    }
+    return defaultBrand;
   } catch {
     return defaultBrand;
   }
 }
 
 export async function admin(){
-  const user=await getChatGPTUser();
-  if(user) return user;
+  try {
+    const cookieStore = await cookies();
+    const session = cookieStore.get('admin_session');
+    if (session && session.value === 'logged_in') {
+      return {
+        userId: 'admin-owner',
+        displayName: 'Store Administrator',
+        email: 'admin@layane-shop.com',
+        fullName: 'Store Owner'
+      };
+    }
+  } catch {}
 
-  // On self-hosted / standalone deployments, allow default admin session
-  return {
-    userId: 'admin-owner',
-    displayName: 'Store Administrator',
-    email: 'admin@layane-shop.com',
-    fullName: 'Store Owner'
-  };
+  const user = await getChatGPTUser();
+  if (user) return user;
+
+  throw new Error('AUTH');
 }
 
-export function safeImage(v:string){return v===''||/^\/assets\/[a-zA-Z0-9._/-]+$/.test(v)||/^https:\/\/[^\s]+$/.test(v);}
+export function safeImage(v:string){return v===''||/^\/assets\/[a-zA-Z0-9._/-]+$/.test(v)||/^\/logo\.png$/.test(v)||/^https:\/\/[^\s]+$/.test(v);}
 export function error(e:unknown){console.error(e);if(e instanceof ZodError){const first=e.issues[0];return Response.json({error:`Please check ${first.path.join(' › ') || 'your input'}: ${first.message}`},{status:400});}const msg=e instanceof Error?e.message:'Unexpected error';return Response.json({error:msg==='AUTH'?'Please sign in to manage your store.':msg==='FORBIDDEN'?'Only the store administrator can access this area.':msg.includes('UNIQUE')?'That page URL is already in use. Choose another slug.':'Unable to complete this request. Your changes have not been discarded. Please try again.'},{status:msg==='AUTH'?401:msg==='FORBIDDEN'?403:400});}
 export function originCheck(r:Request){const o=r.headers.get('origin');if(o&&o!==new URL(r.url).origin)throw new Error('Invalid origin');}
