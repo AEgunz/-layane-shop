@@ -7,14 +7,13 @@ export async function GET(r:Request){
   try{
     const slug=new URL(r.url).searchParams.get('slug');
     let row: any = null;
-    if (slug && slug !== 'default') {
+    if (slug && slug !== 'default' && slug !== 'home') {
       row = await db().prepare("SELECT data FROM pages WHERE slug=? AND status='published'").bind(slug).first<{data:string}>();
     }
     if (!row) {
       row = await db().prepare("SELECT data FROM pages WHERE status='published' ORDER BY rowid ASC").first<{data:string}>();
     }
     if (!row) {
-      // Fallback default sample product if database has no published pages yet
       const defaultPage = {
         id: 'default-product',
         name: 'layane-shop Store',
@@ -73,25 +72,70 @@ export async function POST(r:Request){
       return new Response(JSON.stringify({ok:true}),{status:200,headers});
     }
 
-    const row=await db().prepare("SELECT id,data FROM pages WHERE slug=? AND status='published'").bind(String(x.slug).slice(0,100)).first<{id:string,data:string}>();
-    if(!row)return Response.json({error:'This page is not accepting orders.'},{status:404});
-    const p=JSON.parse(row.data);
-
     if(x.action==='visit'){
+      const slug = String(x.slug || '').slice(0, 100);
+      let row = null;
+      if (slug && slug !== 'default' && slug !== 'home') {
+        row = await db().prepare("SELECT id FROM pages WHERE slug=? AND status='published'").bind(slug).first<{id:string}>();
+      }
+      if (!row) {
+        row = await db().prepare("SELECT id FROM pages WHERE status='published' ORDER BY rowid ASC").first<{id:string}>();
+      }
+      const pageId = row?.id || 'default-product';
+
       const user=await getChatGPTUser();
       const owner=await db().prepare("SELECT value FROM settings WHERE key='owner'").first<{value:string}>();
       if(user?.userId!==owner?.value){
         const token=z.string().uuid().parse(x.token);
-        await db().prepare('INSERT OR IGNORE INTO visits(page_id,token,day) VALUES(?,?,?)').bind(row.id,token,new Date().toISOString().slice(0,10)).run();
+        await db().prepare('INSERT OR IGNORE INTO visits(page_id,token,day) VALUES(?,?,?)').bind(pageId,token,new Date().toISOString().slice(0,10)).run();
       }
       return Response.json({ok:true});
     }
 
     if(x.action==='order'){
-      const o=z.object({id:z.string().uuid(),name:z.string().trim().min(2).max(120),phone:z.string().regex(/^[+0-9\s()-]{8,25}$/),city:z.string().trim().min(2).max(100),address:z.string().trim().min(3).max(500),quantity:z.number().int().min(1).max(10),notes:z.string().max(1000).default(''),website:z.string().max(0).optional()}).parse(x);
-      const existing=await db().prepare('SELECT id FROM orders WHERE id=?').bind(o.id).first();
-      if(!existing)await db().prepare("INSERT INTO orders(id,page_id,product,customer,phone,city,address,quantity,unit_price,shipping,total,status,created_at,notes) VALUES(?,?,?,?,?,?,?,?,?,?,?,'new',?,?) ON CONFLICT(id) DO NOTHING").bind(o.id,row.id,p.name,o.name,o.phone,o.city,o.address,o.quantity,p.price,p.shipping,p.price*o.quantity+p.shipping,new Date().toISOString(),o.notes).run();
-      return Response.json({ok:true,reference:o.id.slice(0,8).toUpperCase()});
+      const slug = String(x.slug || '').slice(0, 100);
+      let row = null;
+      if (slug && slug !== 'default' && slug !== 'home') {
+        row = await db().prepare("SELECT id,data FROM pages WHERE slug=? AND status='published'").bind(slug).first<{id:string,data:string}>();
+      }
+      if (!row) {
+        row = await db().prepare("SELECT id,data FROM pages WHERE status='published' ORDER BY rowid ASC").first<{id:string,data:string}>();
+      }
+
+      let pageId = row?.id || 'default-product';
+      let productName = 'layane-shop Product';
+      let productPrice = 199;
+      let productShipping = 0;
+
+      if (row && row.data) {
+        try {
+          const p = JSON.parse(row.data);
+          productName = p.name || productName;
+          productPrice = p.price || productPrice;
+          productShipping = p.shipping ?? productShipping;
+        } catch {}
+      }
+
+      const o = z.object({
+        id: z.string().uuid(),
+        name: z.string().trim().min(2).max(120),
+        phone: z.string().regex(/^[+0-9\s()-]{8,25}$/),
+        city: z.string().trim().min(2).max(100),
+        address: z.string().trim().min(3).max(500),
+        quantity: z.number().int().min(1).max(10),
+        notes: z.string().max(1000).default(''),
+        website: z.string().max(0).optional()
+      }).parse(x);
+
+      const existing = await db().prepare('SELECT id FROM orders WHERE id=?').bind(o.id).first();
+      if (!existing) {
+        const total = productPrice * o.quantity + productShipping;
+        await db().prepare("INSERT INTO orders(id,page_id,product,customer,phone,city,address,quantity,unit_price,shipping,total,status,created_at,notes) VALUES(?,?,?,?,?,?,?,?,?,?,?,'new',?,?)")
+          .bind(o.id, pageId, productName, o.name, o.phone, o.city, o.address, o.quantity, productPrice, productShipping, total, new Date().toISOString(), o.notes)
+          .run();
+      }
+
+      return Response.json({ ok: true, reference: o.id.slice(0, 8).toUpperCase() });
     }
 
     throw new Error('Invalid operation');
