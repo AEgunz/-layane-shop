@@ -168,21 +168,35 @@ function getSupabaseD1() {
             headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` }
           });
           const data = await res.json();
-          return data || [];
+          if (Array.isArray(data)) {
+            return data.map((item: any) => ({
+              page_id: item.page_id,
+              day: item.day,
+              count: Number(item.count || 1)
+            }));
+          }
+          return [];
         }
 
-        if (this.sql.includes('INSERT OR IGNORE INTO visits')) {
+        if (this.sql.includes('visits')) {
           const [page_id, token, day] = this.params;
-          await fetch(`${cleanUrl}/rest/v1/visits`, {
-            method: 'POST',
-            headers: {
-              'apikey': supabaseKey,
-              'Authorization': `Bearer ${supabaseKey}`,
-              'Content-Type': 'application/json',
-              'Prefer': 'resolution=ignore-duplicates'
-            },
-            body: JSON.stringify({ page_id, token, day, count: 1 })
-          });
+          if (page_id && day) {
+            await fetch(`${cleanUrl}/rest/v1/visits`, {
+              method: 'POST',
+              headers: {
+                'apikey': supabaseKey,
+                'Authorization': `Bearer ${supabaseKey}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'resolution=merge-duplicates'
+              },
+              body: JSON.stringify({
+                page_id: String(page_id),
+                token: String(token || crypto.randomUUID()),
+                day: String(day),
+                count: 1
+              })
+            });
+          }
           return [];
         }
 
