@@ -383,4 +383,50 @@ export function ProductView({page:p,brand:b,preview=false}:any){
   );
 }
 
-export default function Storefront({slug}:{slug:string}){const [data,setData]=useState<any>(null);const [error,setError]=useState('');useEffect(()=>{fetch('/api/public?slug='+encodeURIComponent(slug)).then(async r=>{const d:any=await r.json();if(!r.ok)throw new Error(d.error);setData(d);document.title=d.page.name+' | '+d.brand.name;let token=sessionStorage.getItem('store-visit');if(!token){token=crypto.randomUUID();sessionStorage.setItem('store-visit',token)}fetch('/api/public',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'visit',slug,token})}).catch(()=>{})}).catch(e=>setError(e.message))},[slug]);if(error)return <div className="loading"><ShoppingBag/><h1>Page unavailable</h1><p>{error}</p></div>;if(!data)return <div className="loading">Loading your storefront…</div>;return <ProductView page={data.page} brand={data.brand}/>}
+export default function Storefront({slug}:{slug:string}){
+  const [data,setData]=useState<any>(null);
+  const [error,setError]=useState('');
+
+  useEffect(()=>{
+    fetch('/api/public?slug='+encodeURIComponent(slug))
+      .then(async r=>{
+        const d:any=await r.json();
+        if(!r.ok)throw new Error(d.error);
+        setData(d);
+        document.title=d.page.name+' | '+d.brand.name;
+        let token=sessionStorage.getItem('store-visit');
+        if(!token){
+          token=crypto.randomUUID();
+          sessionStorage.setItem('store-visit',token);
+        }
+        fetch('/api/public',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({action:'visit',slug,token})
+        }).catch(()=>{});
+      })
+      .catch(e=>setError(e.message));
+  },[slug]);
+
+  if(error) return (
+    <div className="loading-screen">
+      <ShoppingBag size={50} style={{ color: '#d32f2f' }} />
+      <h1 style={{ fontSize: '20px', color: '#1e3226' }}>الصفحة غير متاحة</h1>
+      <p style={{ fontSize: '14px', color: '#617567' }}>{error}</p>
+    </div>
+  );
+
+  if(!data) return (
+    <div className="loading-screen">
+      <div className="loading-logo-box">
+        <img src="/logo.png" alt="layane-shop" className="pulse-logo" />
+      </div>
+      <div className="spinner-dots">
+        <span /><span /><span />
+      </div>
+      <span className="loading-text">جار التحميل…</span>
+    </div>
+  );
+
+  return <ProductView page={data.page} brand={data.brand}/>;
+}
