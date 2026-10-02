@@ -1,0 +1,3 @@
+import {env} from 'cloudflare:workers';
+import {admin,error,originCheck} from '@/lib/store';
+export async function POST(r:Request){try{originCheck(r);await admin();const f=(await r.formData()).get('file');if(!(f instanceof File)||f.size>10*1024*1024||!['image/png','image/jpeg','image/webp'].includes(f.type))return Response.json({error:'اختر صورة صيغتها PNG أو JPG أو WebP بحجم أقل من 10 ميغابايت.'},{status:400});if(!env.BUCKET)throw new Error('Storage unavailable');const key=crypto.randomUUID()+'.'+(f.type==='image/jpeg'?'jpg':f.type.split('/')[1]);await env.BUCKET.put(key,await f.arrayBuffer(),{httpMetadata:{contentType:f.type}});return Response.json({url:'/assets/uploads/'+key});}catch(e){return error(e)}}
