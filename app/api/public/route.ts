@@ -1,7 +1,6 @@
 import {db,brand,error,originCheck} from '@/lib/store';
 import {getChatGPTUser} from '@/app/chatgpt-auth';
 import {z} from 'zod';
-import {cookies} from 'next/headers';
 export const dynamic='force-dynamic';
 
 export async function GET(r:Request){
@@ -24,23 +23,17 @@ export async function POST(r:Request){
       const username=String(x.username||'').trim();
       const password=String(x.password||'').trim();
       if((username==='admin'||username==='layane')&&(password==='layane2026'||password==='admin'||password==='123456'||password==='layaneshop')){
-        const cookieStore=await cookies();
-        cookieStore.set('admin_session','logged_in',{
-          httpOnly:true,
-          secure:process.env.NODE_ENV==='production',
-          sameSite:'lax',
-          path:'/',
-          maxAge:60*60*24*30
-        });
-        return Response.json({ok:true});
+        const headers=new Headers({'Content-Type':'application/json'});
+        headers.append('Set-Cookie',`admin_session=logged_in; Path=/; HttpOnly; Max-Age=${60*60*24*30}; SameSite=Lax`);
+        return new Response(JSON.stringify({ok:true}),{status:200,headers});
       }
       return Response.json({error:'اسم المستخدم أو كلمة المرور غير صحيحة'},{status:400});
     }
 
     if(x.action==='logout'){
-      const cookieStore=await cookies();
-      cookieStore.delete('admin_session');
-      return Response.json({ok:true});
+      const headers=new Headers({'Content-Type':'application/json'});
+      headers.append('Set-Cookie','admin_session=; Path=/; HttpOnly; Max-Age=0; SameSite=Lax');
+      return new Response(JSON.stringify({ok:true}),{status:200,headers});
     }
 
     const row=await db().prepare("SELECT id,data FROM pages WHERE slug=? AND status='published'").bind(String(x.slug).slice(0,100)).first<{id:string,data:string}>();
