@@ -8,6 +8,82 @@ export const defaultBrand={name:'layane-shop',tagline:'Care for your everyday',c
 
 let nodeD1Instance: any = null;
 
+function getTursoD1() {
+  const url = process.env.TURSO_DATABASE_URL || process.env.DATABASE_URL;
+  const token = process.env.TURSO_AUTH_TOKEN;
+  if (!url || !token) return null;
+
+  const httpUrl = url.replace('libsql://', 'https://').replace('sqlite://', 'https://');
+
+  class TursoStmt {
+    sql: string; params: any[];
+    constructor(sql: string, params: any[] = []) {
+      this.sql = sql; this.params = params;
+    }
+    bind(...args: any[]) { return new TursoStmt(this.sql, args); }
+
+    async execApi() {
+      try {
+        const res = await fetch(`${httpUrl}/v2/pipeline`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            requests: [
+              {
+                type: 'execute',
+                stmt: {
+                  sql: this.sql,
+                  args: this.params.map(p => ({
+                    type: typeof p === 'number' ? 'integer' : 'text',
+                    value: String(p ?? '')
+                  }))
+                }
+              },
+              { type: 'close' }
+            ]
+          })
+        });
+        const data = await res.json();
+        const results = data?.results?.[0]?.response?.result;
+        if (!results || !results.rows) return [];
+        const cols = results.cols.map((c: any) => c.name);
+        return results.rows.map((row: any[]) => {
+          const obj: any = {};
+          cols.forEach((col: string, idx: number) => {
+            obj[col] = row[idx]?.value;
+          });
+          return obj;
+        });
+      } catch (err) {
+        console.error('Turso API Exec Error:', err);
+        return [];
+      }
+    }
+
+    async first(col?: string) {
+      const rows = await this.execApi();
+      if (!rows || rows.length === 0) return null;
+      if (col && typeof col === 'string') return rows[0][col];
+      return rows[0];
+    }
+    async all() {
+      const rows = await this.execApi();
+      return { results: rows, success: true };
+    }
+    async run() {
+      await this.execApi();
+      return { success: true, meta: { changes: 1 } };
+    }
+  }
+
+  return {
+    prepare(sql: string) { return new TursoStmt(sql); }
+  };
+}
+
 function getNodeD1() {
   if (nodeD1Instance) return nodeD1Instance;
   try {
@@ -68,13 +144,16 @@ function getNodeD1() {
 }
 
 export function db() {
+  const tursoDb = getTursoD1();
+  if (tursoDb) return tursoDb;
+
+  const globalEnv = (globalThis as any).__env__ || (globalThis as any).env;
+  if (globalEnv?.DB) return globalEnv.DB;
+
   if (typeof process !== 'undefined' && process.versions && process.versions.node) {
     const localDb = getNodeD1();
     if (localDb) return localDb;
   }
-
-  const globalEnv = (globalThis as any).__env__ || (globalThis as any).env;
-  if (globalEnv?.DB) return globalEnv.DB;
 
   const localDb = getNodeD1();
   if (localDb) return localDb;
