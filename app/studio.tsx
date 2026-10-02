@@ -1,6 +1,6 @@
 'use client';
 import {useState,useEffect,useCallback} from 'react';
-import {LayoutDashboard,PanelsTopLeft,ShoppingBag,ChartNoAxesCombined,Settings,Plus,Leaf,ArrowUpRight,Globe,MousePointer2,Wallet,Search,ChevronDown,Download,ExternalLink,Copy,Pencil,X,Monitor,Smartphone,Check,Archive,RefreshCw,ImagePlus,ArrowLeft,ArrowRight,Eye,ShieldCheck,Upload,LogOut,Lock} from 'lucide-react';
+import {LayoutDashboard,PanelsTopLeft,ShoppingBag,ChartNoAxesCombined,Settings,Plus,Leaf,ArrowUpRight,Globe,MousePointer2,Wallet,Search,ChevronDown,Download,ExternalLink,Copy,Pencil,X,Monitor,Smartphone,Check,Archive,RefreshCw,ImagePlus,ArrowLeft,ArrowRight,Eye,ShieldCheck,Upload,LogOut,Lock,MessageCircle,Trash2} from 'lucide-react';
 import {Logo,ProductView} from './storefront';
 import JSZip from 'jszip';
 
@@ -12,6 +12,14 @@ function Badge({status}:any){return <span className={'pill '+status}>{status}</s
 function compressImage(file:File):Promise<File>{return new Promise((resolve)=>{if(file.size<=1.5*1024*1024||!file.type.startsWith('image/'))return resolve(file);const img=new Image();const url=URL.createObjectURL(file);img.onload=()=>{URL.revokeObjectURL(url);const canvas=document.createElement('canvas');let{width,height}=img;const maxDim=1920;if(width>maxDim||height>maxDim){if(width>height){height=Math.round((height*maxDim)/width);width=maxDim}else{width=Math.round((width*maxDim)/height);height=maxDim}}canvas.width=width;canvas.height=height;const ctx=canvas.getContext('2d');if(!ctx)return resolve(file);ctx.drawImage(img,0,0,width,height);canvas.toBlob((blob)=>{if(!blob)return resolve(file);resolve(new File([blob],file.name.replace(/\.[^.]+$/,'')+'.jpg',{type:'image/jpeg'}))},'image/jpeg',0.82)};img.onerror=()=>resolve(file);img.src=url})}
 function readFileAsDataUrl(file:File):Promise<string>{return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result as string);reader.onerror=reject;reader.readAsDataURL(file)})}
 function Empty({icon:Icon=ShoppingBag,title,text,action}:any){return <div className="empty"><span><Icon size={28}/></span><h3>{title}</h3><p>{text}</p>{action}</div>}
+
+function getWhatsAppUrl(phoneStr: string) {
+  let clean = String(phoneStr || '').replace(/[^0-9]/g, '');
+  if (clean.startsWith('0')) {
+    clean = '212' + clean.slice(1);
+  }
+  return `https://wa.me/${clean}`;
+}
 
 function ImageField({value,onChange,label='صورة البانر الرئيسية'}:any){
   const [busy,setBusy]=useState(false);
@@ -552,7 +560,85 @@ export default function Studio(){
   const b=data.brand;const pages=data.pages;const allOrders=data.orders;const since=range==='all'?'':new Date(Date.now()-Number(range)*86400000).toISOString();const orders=allOrders.filter((o:any)=>!since||o.created_at>=since);const visits=data.visits.filter((v:any)=>!since||v.day>=since.slice(0,10));const visitCount=visits.reduce((n:number,v:any)=>n+v.count,0);const activeOrders=orders.filter((o:any)=>o.status!=='cancelled');const sales=orders.filter((o:any)=>o.status==='delivered').reduce((n:number,o:any)=>n+o.total,0);const conversion=visitCount?(orders.length/visitCount*100).toFixed(1):'0';const newOrders=allOrders.filter((o:any)=>o.status==='new').length;
   const visiblePages=pages.filter((p:any)=>(filter==='all'||p.status===filter)&&p.name.toLowerCase().includes(query.toLowerCase()));const visibleOrders=orders.filter((o:any)=>(filter==='all'||o.status===filter)&&[o.customer,o.phone,o.product,o.id].some((v:string)=>v.toLowerCase().includes(query.toLowerCase())));const dateControl=<select className="datefilter" aria-label="Date range" value={range} onChange={e=>setRange(e.target.value)}><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="all">All time</option></select>;
   const performance=<div className="tablewrap"><table><thead><tr><th>Product</th><th>Visits</th><th>Orders</th><th>Conversion</th><th>Sales</th></tr></thead><tbody>{pages.filter((p:any)=>p.status!=='archived').map((p:any)=>{const v=visits.filter((x:any)=>x.page_id===p.id).reduce((n:number,x:any)=>n+x.count,0);const o=orders.filter((x:any)=>x.page_id===p.id);return <tr key={p.id}><td><div className="tableproduct">{p.image?<img src={p.image} alt=""/>:<span className="productplaceholder"><ShoppingBag size={18}/></span>}<span>{p.name}<small>/p/{p.slug}</small></span></div></td><td>{v.toLocaleString()}</td><td>{o.length}</td><td>{v?(o.length/v*100).toFixed(1):0}%</td><td className="strong">{money(o.filter((x:any)=>x.status==='delivered').reduce((n:number,x:any)=>n+o.total,0))}</td></tr>})}</tbody></table></div>;
-  const orderTable=(rows:any[])=>rows.length?<div className="tablewrap"><table><thead><tr><th>Order / customer</th><th>Product</th><th>Total</th><th>Status</th><th>Date</th><th/></tr></thead><tbody>{rows.map((o:any)=><tr key={o.id}><td><button className="tablelink" onClick={()=>setDetail(o)}>{o.customer}</button><small>#{o.id.slice(0,8).toUpperCase()} · {o.phone}</small></td><td>{o.product}<small>{o.quantity} item{o.quantity>1?'s':''} · {o.city}</small></td><td className="strong">{money(o.total)}</td><td><Badge status={o.status}/></td><td>{niceDate(o.created_at)}</td><td><button className="iconbutton" title="Order details" onClick={()=>setDetail(o)}><ArrowUpRight size={16}/></button></td></tr>)}</tbody></table></div>:<Empty title={query||filter!=='all'?'No matching orders':'Your next order starts here'} text={query||filter!=='all'?'Try another search or status.':'Orders from all your landing pages will appear here.'} action={!query&&filter==='all'&&userPerms.includes('Landing pages')&&<button onClick={()=>navigate('Landing pages')}>Manage landing pages</button>}/>;
+
+  const orderTable=(rows:any[])=>rows.length?(
+    <div className="tablewrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Order / customer</th>
+            <th>Phone / WhatsApp</th>
+            <th>Product</th>
+            <th>Total</th>
+            <th>Status</th>
+            <th>Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((o:any)=>(
+            <tr key={o.id}>
+              <td>
+                <button className="tablelink" onClick={()=>setDetail(o)} style={{fontWeight:'700'}}>
+                  {o.customer}
+                </button>
+                <small>#{o.id.slice(0,8).toUpperCase()}</small>
+              </td>
+              <td>
+                <a
+                  href={getWhatsAppUrl(o.phone)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="تواصل عبر الواتساب"
+                  style={{
+                    color:'#15803d',
+                    fontWeight:'800',
+                    display:'inline-flex',
+                    alignItems:'center',
+                    gap:'5px',
+                    background:'#eefbf2',
+                    padding:'4px 10px',
+                    borderRadius:'20px',
+                    fontSize:'13px',
+                    border:'1px solid #bbf7d0'
+                  }}
+                  onClick={(e)=>e.stopPropagation()}
+                >
+                  <MessageCircle size={14}/>
+                  <span dir="ltr">{o.phone}</span>
+                </a>
+              </td>
+              <td>{o.product}<small>{o.quantity} item{o.quantity>1?'s':''} · {o.city}</small></td>
+              <td className="strong">{money(o.total)}</td>
+              <td><Badge status={o.status}/></td>
+              <td>{niceDate(o.created_at)}</td>
+              <td>
+                <div style={{display:'flex',gap:'6px',alignItems:'center'}}>
+                  <button className="iconbutton" title="Order details" onClick={()=>setDetail(o)}>
+                    <ArrowUpRight size={16}/>
+                  </button>
+                  <button
+                    className="iconbutton"
+                    title="حذف الطلب"
+                    onClick={async (e)=>{
+                      e.stopPropagation();
+                      if(window.confirm('هل أنت متأكد من حذف هذا الطلب نهائياً؟')){
+                        await save({action:'delete_order',id:o.id},'Order deleted successfully.');
+                      }
+                    }}
+                    style={{color:'#d32f2f'}}
+                  >
+                    <Trash2 size={16}/>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  ):<Empty title={query||filter!=='all'?'No matching orders':'Your next order starts here'} text={query||filter!=='all'?'Try another search or status.':'Orders from all your landing pages will appear here.'} action={!query&&filter==='all'&&userPerms.includes('Landing pages')&&<button onClick={()=>navigate('Landing pages')}>Manage landing pages</button>}/>;
+
   const metrics=<div className="stats">{[[Wallet,'Total sales',money(sales),'Delivered orders only'],[ShoppingBag,'Total orders',orders.length.toLocaleString(),`${newOrders} awaiting confirmation`],[MousePointer2,'Page visits',visitCount.toLocaleString(),'Unique page sessions per day'],[ChartNoAxesCombined,'Conversion rate',conversion+'%','Orders ÷ page visits']].map(([Icon,label,value,hint]:any)=><div className="stat" key={label}><div><span>{label}</span><span className="statIcon"><Icon size={18}/></span></div><strong>{value}</strong><small>{hint}</small></div>)}</div>;
   const mainHomeSlug = pages.find((p: any) => p.status === 'published')?.slug;
 
@@ -803,13 +889,61 @@ export default function Studio(){
             <h1>{detail.customer}</h1>
             <p>{niceDate(detail.created_at)}</p>
             <div className="detailgrid">
-              <div><h3>Customer details</h3><a href={'tel:'+detail.phone}>{detail.phone}</a><p>{detail.address}<br/>{detail.city}</p></div>
-              <div><h3>Order summary</h3><p>{detail.product}<br/>{detail.quantity} × {money(detail.unit_price)}<br/>Delivery: {money(detail.shipping)}</p><strong>{money(detail.total)}</strong></div>
+              <div>
+                <h3>Customer details</h3>
+                <a
+                  href={getWhatsAppUrl(detail.phone)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display:'inline-flex',
+                    alignItems:'center',
+                    gap:'6px',
+                    background:'#25D366',
+                    color:'#fff',
+                    padding:'8px 16px',
+                    borderRadius:'20px',
+                    fontWeight:'800',
+                    fontSize:'14px',
+                    marginBottom:'12px',
+                    textDecoration:'none'
+                  }}
+                >
+                  <MessageCircle size={16}/>
+                  تواصل عبر الواتساب (<span dir="ltr">{detail.phone}</span>)
+                </a>
+                <p>{detail.address}<br/>{detail.city}</p>
+              </div>
+              <div>
+                <h3>Order summary</h3>
+                <p>{detail.product}<br/>{detail.quantity} × {money(detail.unit_price)}<br/>Delivery: {money(detail.shipping)}</p>
+                <strong>{money(detail.total)}</strong>
+              </div>
             </div>
             {detail.notes&&<div className="infobox"><p>{detail.notes}</p></div>}
             <form onSubmit={async e=>{e.preventDefault();const r=await save({action:'status',id:detail.id,status:detail.status},'Order status updated.');if(r)setDetail(null)}}>
-              <label>Order status<select value={detail.status} onChange={e=>setDetail({...detail,status:e.target.value})}>{['new','confirmed','shipped','delivered','cancelled'].map(s=><option key={s}>{s}</option>)}</select></label>
-              <button className="primary" disabled={busy}>{busy?'Saving…':'Update status'}</button>
+              <label>Order status
+                <select value={detail.status} onChange={e=>setDetail({...detail,status:e.target.value})}>
+                  {['new','confirmed','shipped','delivered','cancelled'].map(s=><option key={s}>{s}</option>)}
+                </select>
+              </label>
+              <div style={{display:'flex',gap:'12px',marginTop:'18px',justify:'space-between',alignItems:'center'}}>
+                <button className="primary" disabled={busy}>{busy?'Saving…':'Update status'}</button>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={async ()=>{
+                    if(window.confirm('هل أنت متأكد من حذف هذا الطلب نهائياً؟')){
+                      const r=await save({action:'delete_order',id:detail.id},'Order deleted successfully.');
+                      if(r)setDetail(null);
+                    }
+                  }}
+                  style={{border:0,background:'transparent',color:'#d32f2f',fontWeight:'700',cursor:'pointer',fontSize:'13px',display:'flex',alignItems:'center',gap:'4px'}}
+                >
+                  <Trash2 size={16}/>
+                  حذف الطلب (Delete Order)
+                </button>
+              </div>
             </form>
           </section>
         </div>

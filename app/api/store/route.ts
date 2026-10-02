@@ -110,6 +110,12 @@ export async function POST(r:Request){
       return Response.json({ok:true});
     }
 
+    if(x.action==='delete_order'){
+      const {id} = z.object({id:z.string()}).parse(x);
+      await db().prepare("DELETE FROM orders WHERE id=?").bind(id).run();
+      return Response.json({ok:true});
+    }
+
     if(x.action==='status'){
       const p=z.object({id:z.string(),status:z.enum(['new','confirmed','shipped','delivered','cancelled'])}).parse(x);
       const result=await db().prepare('UPDATE orders SET status=? WHERE id=?').bind(p.status,p.id).run();
