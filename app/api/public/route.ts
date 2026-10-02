@@ -31,8 +31,12 @@ export async function POST(r:Request){
       const isDefaultAdmin = (username==='admin'||username==='layane') && (password==='layane2026'||password==='admin'||password==='123456'||password==='layaneshop');
 
       if (matchedAdmin || isDefaultAdmin) {
+        const perms = matchedAdmin?.permissions || ['Overview', 'Landing pages', 'Orders', 'Analytics', 'Brand settings'];
+        const userSlug = matchedAdmin?.username || 'admin';
+        const sessionVal = `logged_in:${userSlug}:${encodeURIComponent(JSON.stringify(perms))}`;
+
         const headers=new Headers({'Content-Type':'application/json'});
-        headers.append('Set-Cookie',`admin_session=logged_in; Path=/; HttpOnly; Max-Age=${60*60*24*30}; SameSite=Lax`);
+        headers.append('Set-Cookie',`admin_session=${sessionVal}; Path=/; HttpOnly; Max-Age=${60*60*24*30}; SameSite=Lax`);
         return new Response(JSON.stringify({ok:true}),{status:200,headers});
       }
       return Response.json({error:'اسم المستخدم أو كلمة المرور غير صحيحة'},{status:400});

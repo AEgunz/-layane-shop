@@ -1,4 +1,4 @@
-import {admin,db,brand,defaultBrand,error,originCheck,safeImage,getAdmins} from '@/lib/store';
+import {admin,db,brand,defaultBrand,error,originCheck,safeImage,getAdmins,getSessionPermissions,getCurrentAdminInfo} from '@/lib/store';
 import {z} from 'zod';
 export const dynamic='force-dynamic';
 const reviewSchema=z.object({id:z.string().optional(),name:z.string().max(100),city:z.string().max(100),comment:z.string().max(1000),rating:z.number().min(1).max(5).default(5),date:z.string().max(50).optional()});
@@ -30,12 +30,14 @@ export async function GET(){
   try{
     const user=await admin();
     await db().prepare("INSERT OR IGNORE INTO settings(key,value) VALUES('brand',?)").bind(JSON.stringify(defaultBrand)).run();
-    const [pages,orders,visits,b,adminsList]=await Promise.all([
+    const [pages,orders,visits,b,adminsList,userPerms,currentAdmin]=await Promise.all([
       db().prepare('SELECT data FROM pages ORDER BY rowid DESC').all<{data:string}>(),
       db().prepare('SELECT * FROM orders ORDER BY created_at DESC').all(),
       db().prepare('SELECT page_id,day,count(*) AS count FROM visits GROUP BY page_id,day').all(),
       brand(),
-      getAdmins()
+      getAdmins(),
+      getSessionPermissions(),
+      getCurrentAdminInfo()
     ]);
     return Response.json({
       pages:pages.results.map(p=>JSON.parse(p.data)),
@@ -43,6 +45,8 @@ export async function GET(){
       visits:visits.results,
       brand:b,
       admins:adminsList,
+      permissions:userPerms,
+      currentAdmin,
       user:user.displayName
     },{headers:{'Cache-Control':'no-store'}});
   }catch(e){
@@ -81,7 +85,8 @@ export async function POST(r:Request){
         name:z.string().trim().min(2).max(100),
         username:z.string().trim().min(3).max(60),
         password:z.string().trim().min(4).max(100),
-        role:z.string().default('admin')
+        role:z.enum(['full', 'orders_only', 'pages_only', 'custom']).default('full'),
+        permissions:z.array(z.string()).default(['Overview', 'Landing pages', 'Orders', 'Analytics', 'Brand settings'])
       }).parse(x.admin);
 
       const currentAdmins = await getAdmins();

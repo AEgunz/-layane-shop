@@ -104,15 +104,78 @@ export async function getAdmins() {
     }
   } catch {}
   return [
-    { id: 'default-admin', name: 'المشرف الرئيسي', username: 'admin', password: 'layane2026', role: 'admin' }
+    {
+      id: 'default-admin',
+      name: 'Primary Administrator',
+      username: 'admin',
+      password: 'layane2026',
+      role: 'full',
+      permissions: ['Overview', 'Landing pages', 'Orders', 'Analytics', 'Brand settings']
+    }
   ];
+}
+
+export async function getCurrentAdminInfo() {
+  let session = '';
+  try {
+    const cookieStore = await cookies();
+    session = cookieStore.get('admin_session')?.value || '';
+  } catch {}
+
+  if (!session) {
+    try {
+      const reqHeaders = await headers();
+      session = reqHeaders.get('cookie') || '';
+    } catch {}
+  }
+
+  if (session) {
+    const match = session.match(/admin_session=logged_in:([^:]+)/) || session.match(/^logged_in:([^:]+)/);
+    if (match && match[1]) {
+      const username = match[1];
+      const admins = await getAdmins();
+      const found = admins.find((a: any) => a.username.toLowerCase() === username.toLowerCase());
+      if (found) {
+        return { name: found.name, username: found.username, role: found.role };
+      }
+      return { name: username, username, role: 'admin' };
+    }
+  }
+
+  return { name: 'Primary Administrator', username: 'admin', role: 'full' };
+}
+
+export async function getSessionPermissions() {
+  try {
+    const cookieStore = await cookies();
+    const session = cookieStore.get('admin_session')?.value || '';
+    if (session.startsWith('logged_in:')) {
+      const parts = session.split(':');
+      if (parts[2]) {
+        return JSON.parse(decodeURIComponent(parts[2]));
+      }
+    }
+  } catch {}
+
+  try {
+    const reqHeaders = await headers();
+    const cookieHeader = reqHeaders.get('cookie') || '';
+    if (cookieHeader.includes('admin_session=logged_in:')) {
+      const match = cookieHeader.match(/admin_session=logged_in:[^:]+:([^;]+)/);
+      if (match && match[1]) {
+        return JSON.parse(decodeURIComponent(match[1]));
+      }
+    }
+  } catch {}
+
+  return ['Overview', 'Landing pages', 'Orders', 'Analytics', 'Brand settings'];
 }
 
 export async function admin(){
   try {
     const cookieStore = await cookies();
     const session = cookieStore.get('admin_session');
-    if (session && session.value === 'logged_in') {
+    if (session && session.value.startsWith('logged_in')) {
       return {
         userId: 'admin-owner',
         displayName: 'Store Administrator',

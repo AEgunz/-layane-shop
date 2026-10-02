@@ -1,6 +1,6 @@
 'use client';
 import {useEffect,useState} from 'react';
-import {Leaf,ShieldCheck,Truck,Check,ShoppingBag,X} from 'lucide-react';
+import {Leaf,ShieldCheck,Truck,Check,ShoppingBag,X,Package,RefreshCw,MessageCircle} from 'lucide-react';
 
 export function Logo({brand}:any){
   return (
@@ -264,6 +264,47 @@ export function ProductView({page:p,brand:b,preview=false}:any){
         </form>}
       </section>
 
+      {/* Trust Guarantees Section */}
+      <section className="store-guarantees-section">
+        <div className="guarantees-container">
+          <div className="guarantee-card card-green">
+            <div className="guarantee-icon"><Leaf size={24}/></div>
+            <div className="guarantee-divider"/>
+            <div className="guarantee-text">
+              <h4>جميع المنتجات طبيعية أصيلة 100%</h4>
+              <p>منتجات مختارة بعناية للحفاظ على الجودة والأصالة.</p>
+            </div>
+          </div>
+
+          <div className="guarantee-card card-gold">
+            <div className="guarantee-icon"><Package size={24}/></div>
+            <div className="guarantee-divider"/>
+            <div className="guarantee-text">
+              <h4>المنتجات تصلك كما تظهر في الصفحة</h4>
+              <p>ما تشاهده في هذه الصفحة هو ما سيصلك داخل طلبيتك.</p>
+            </div>
+          </div>
+
+          <div className="guarantee-card card-blue">
+            <div className="guarantee-icon"><RefreshCw size={24}/></div>
+            <div className="guarantee-divider"/>
+            <div className="guarantee-text">
+              <h4>يمكنك إرجاع أو استبدال الطلبية</h4>
+              <p>يمكنك إرجاع أو استبدال طلبيتك بعد الشراء بدون أي شروط.</p>
+            </div>
+          </div>
+
+          <div className="guarantee-card card-purple">
+            <div className="guarantee-icon"><MessageCircle size={24}/></div>
+            <div className="guarantee-divider"/>
+            <div className="guarantee-text">
+              <h4>خدمة ما بعد البيع متوفرة</h4>
+              <p>نحن متوفرون لمساعدتك ومتابعة طلبك حتى بعد استلام المنتجات.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Rich Store Footer */}
       <footer className="store-rich-footer">
         <div className="footer-cols">
@@ -292,9 +333,20 @@ export function ProductView({page:p,brand:b,preview=false}:any){
           </div>
         </div>
 
-        <div className="footer-bottom-copy">
+        <div className="footer-bottom-copy" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
           <Logo brand={b}/>
           <span>© {new Date().getFullYear()} {b.name}. جميع الحقوق محفوظة.</span>
+          <span className="developer-signature" style={{ fontSize: '12px', color: '#9bbba9', marginTop: '4px' }}>
+            Designed & Developed by{' '}
+            <a
+              href="https://www.linkedin.com/in/ayoub-eddarif-b92189b3/"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: '#ffffff', fontWeight: '700', textDecoration: 'underline' }}
+            >
+              Ayoub Eddarif
+            </a>
+          </span>
         </div>
       </footer>
 
