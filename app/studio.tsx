@@ -10,9 +10,42 @@ const navs:any[]=[[LayoutDashboard,'Overview'],[PanelsTopLeft,'Landing pages'],[
 async function api(body?:any){const r=await fetch('/api/store',body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:undefined);const d:any=await r.json();if(!r.ok)throw new Error(d.error);return d}
 function Badge({status}:any){return <span className={'pill '+status}>{status}</span>}
 function compressImage(file:File):Promise<File>{return new Promise((resolve)=>{if(file.size<=1.5*1024*1024||!file.type.startsWith('image/'))return resolve(file);const img=new Image();const url=URL.createObjectURL(file);img.onload=()=>{URL.revokeObjectURL(url);const canvas=document.createElement('canvas');let{width,height}=img;const maxDim=1920;if(width>maxDim||height>maxDim){if(width>height){height=Math.round((height*maxDim)/width);width=maxDim}else{width=Math.round((width*maxDim)/height);height=maxDim}}canvas.width=width;canvas.height=height;const ctx=canvas.getContext('2d');if(!ctx)return resolve(file);ctx.drawImage(img,0,0,width,height);canvas.toBlob((blob)=>{if(!blob)return resolve(file);resolve(new File([blob],file.name.replace(/\.[^.]+$/,'')+'.jpg',{type:'image/jpeg'}))},'image/jpeg',0.82)};img.onerror=()=>resolve(file);img.src=url})}
+function readFileAsDataUrl(file:File):Promise<string>{return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result as string);reader.onerror=reject;reader.readAsDataURL(file)})}
 function Empty({icon:Icon=ShoppingBag,title,text,action}:any){return <div className="empty"><span><Icon size={28}/></span><h3>{title}</h3><p>{text}</p>{action}</div>}
 
-function ImageField({value,onChange,label='صورة البانر الرئيسية'}:any){const [busy,setBusy]=useState(false);const [error,setError]=useState('');async function upload(e:any){const file=e.target.files?.[0];if(!file)return;setBusy(true);setError('');try{const fileToUpload=await compressImage(file);const body=new FormData();body.append('file',fileToUpload);const r=await fetch('/api/upload',{method:'POST',body});const resText=await r.text();let d:any;try{d=JSON.parse(resText)}catch{if(r.status===413)throw new Error('حجم الصورة كبير جداً. يرجى اختيار صورة بحجم أصغر.');throw new Error(resText||'فشل رفع الصورة.')}if(!r.ok)throw new Error(d.error||'Unable to upload image');onChange(d.url)}catch(e:any){setError(e.message)}finally{setBusy(false)}}return <div className="imagefield"><label>{label}<input value={value} placeholder="https://… or upload an image" onChange={e=>onChange(e.target.value)}/></label><div>{value&&<img src={value} alt={label}/>}<label className="upload"><ImagePlus size={16}/>{busy?'Uploading…':'Upload image'}<input type="file" accept="image/png,image/jpeg,image/webp" onChange={upload} disabled={busy}/></label>{value&&<button type="button" className="textbutton" onClick={()=>onChange('')}>Remove</button>}</div>{error&&<p className="error">{error}</p>}</div>}
+function ImageField({value,onChange,label='صورة البانر الرئيسية'}:any){
+  const [busy,setBusy]=useState(false);
+  const [error,setError]=useState('');
+  async function upload(e:any){
+    const file=e.target.files?.[0];
+    if(!file)return;
+    setBusy(true);
+    setError('');
+    try{
+      const fileToUpload=await compressImage(file);
+      try {
+        const body=new FormData();
+        body.append('file',fileToUpload);
+        const r=await fetch('/api/upload',{method:'POST',body});
+        const resText=await r.text();
+        let d:any;
+        try{d=JSON.parse(resText)}catch{}
+        if(r.ok&&d?.url){
+          onChange(d.url);
+          return;
+        }
+      } catch {}
+
+      const dataUrl = await readFileAsDataUrl(fileToUpload);
+      onChange(dataUrl);
+    }catch(e:any){
+      setError(e.message||'فشل رفع الصورة');
+    }finally{
+      setBusy(false);
+    }
+  }
+  return <div className="imagefield"><label>{label}<input value={value} placeholder="https://… or upload an image" onChange={e=>onChange(e.target.value)}/></label><div>{value&&<img src={value} alt={label}/>}<label className="upload"><ImagePlus size={16}/>{busy?'Uploading…':'Upload image'}<input type="file" accept="image/png,image/jpeg,image/webp" onChange={upload} disabled={busy}/></label>{value&&<button type="button" className="textbutton" onClick={()=>onChange('')}>Remove</button>}</div>{error&&<p className="error">{error}</p>}</div>
+}
 
 function ZipUploader({onHtmlLoaded,onImagesLoaded}:any){
   const [busy,setBusy]=useState(false);
@@ -51,17 +84,26 @@ function ZipUploader({onHtmlLoaded,onImagesLoaded}:any){
         const imgFile=new File([blob],relativePath.split('/').pop()||`img_${i}.jpg`,{type:blob.type||'image/jpeg'});
         try{
           const fileToUpload=await compressImage(imgFile);
-          const body=new FormData();
-          body.append('file',fileToUpload);
-          const r=await fetch('/api/upload',{method:'POST',body});
-          const d=await r.json();
-          if(r.ok&&d.url){
-            uploadedImages.push(d.url);
-            if(htmlText){
-              const filename=relativePath.split('/').pop();
-              if(filename){
-                htmlText=htmlText.replaceAll(relativePath,d.url).replaceAll(filename,d.url);
-              }
+          let uploadedUrl = '';
+          try {
+            const body=new FormData();
+            body.append('file',fileToUpload);
+            const r=await fetch('/api/upload',{method:'POST',body});
+            const d=await r.json();
+            if(r.ok&&d?.url){
+              uploadedUrl = d.url;
+            }
+          } catch {}
+
+          if (!uploadedUrl) {
+            uploadedUrl = await readFileAsDataUrl(fileToUpload);
+          }
+
+          uploadedImages.push(uploadedUrl);
+          if(htmlText){
+            const filename=relativePath.split('/').pop();
+            if(filename){
+              htmlText=htmlText.replaceAll(relativePath,uploadedUrl).replaceAll(filename,uploadedUrl);
             }
           }
         }catch(err){console.error(err)}
@@ -116,18 +158,28 @@ function MultiImageUploader({images,onChange}:any){
     try{
       for(let i=0;i<files.length;i++){
         const fileToUpload=await compressImage(files[i]);
-        const body=new FormData();
-        body.append('file',fileToUpload);
-        const r=await fetch('/api/upload',{method:'POST',body});
-        const resText=await r.text();
-        let d:any;
-        try{d=JSON.parse(resText)}catch{throw new Error('فشل رفع الصورة')}
-        if(!r.ok)throw new Error(d.error||'فشل الرفع');
-        newUrls.push(d.url);
+        let uploadedUrl = '';
+        try {
+          const body=new FormData();
+          body.append('file',fileToUpload);
+          const r=await fetch('/api/upload',{method:'POST',body});
+          const resText=await r.text();
+          let d:any;
+          try{d=JSON.parse(resText)}catch{}
+          if(r.ok&&d?.url){
+            uploadedUrl = d.url;
+          }
+        } catch {}
+
+        if (!uploadedUrl) {
+          uploadedUrl = await readFileAsDataUrl(fileToUpload);
+        }
+
+        newUrls.push(uploadedUrl);
       }
       onChange(newUrls);
     }catch(err:any){
-      setError(err.message);
+      setError(err.message||'فشل رفع الصور');
     }finally{
       setBusy(false);
     }

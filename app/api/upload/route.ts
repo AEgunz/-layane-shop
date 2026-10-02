@@ -34,19 +34,25 @@ export async function POST(r:Request){
     }
 
     // Node.js local storage fallback
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-    fs.writeFileSync(path.join(uploadsDir, key), Buffer.from(arrayBuffer));
+    try {
+      const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+      fs.writeFileSync(path.join(uploadsDir, key), Buffer.from(arrayBuffer));
 
-    const distUploadsDir = path.join(process.cwd(), 'dist', 'client', 'uploads');
-    if (fs.existsSync(path.join(process.cwd(), 'dist'))) {
-      if (!fs.existsSync(distUploadsDir)) fs.mkdirSync(distUploadsDir, { recursive: true });
-      fs.writeFileSync(path.join(distUploadsDir, key), Buffer.from(arrayBuffer));
-    }
+      const distUploadsDir = path.join(process.cwd(), 'dist', 'client', 'uploads');
+      if (fs.existsSync(path.join(process.cwd(), 'dist'))) {
+        if (!fs.existsSync(distUploadsDir)) fs.mkdirSync(distUploadsDir, { recursive: true });
+        fs.writeFileSync(path.join(distUploadsDir, key), Buffer.from(arrayBuffer));
+      }
 
-    return Response.json({url:'/uploads/'+key});
+      return Response.json({url:'/uploads/'+key});
+    } catch (diskErr) {
+      // Fallback: Base64 Data URL (100% Writable on Read-Only Serverless)
+      const base64 = Buffer.from(arrayBuffer).toString('base64');
+      return Response.json({url: `data:${f.type};base64,${base64}`});
+    }
   }catch(e){
     return error(e)
   }
