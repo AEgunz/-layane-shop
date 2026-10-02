@@ -104,6 +104,18 @@ function getSupabaseD1() {
           return data || [];
         }
 
+        if (this.sql.includes('DELETE FROM settings')) {
+          const key = this.params[0] || 'admins';
+          await fetch(`${cleanUrl}/rest/v1/settings?key=eq.${encodeURIComponent(key)}`, {
+            method: 'DELETE',
+            headers: {
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${supabaseKey}`
+            }
+          });
+          return [];
+        }
+
         if (this.sql.includes('INSERT INTO settings') || this.sql.includes('UPDATE settings')) {
           const [key, value] = this.params;
           await fetch(`${cleanUrl}/rest/v1/settings`, {
@@ -441,17 +453,6 @@ export async function admin(){
       };
     }
   } catch {}
-
-  if (typeof process !== 'undefined' && process.versions && process.versions.node) {
-    const user = await getChatGPTUser();
-    if (user) return user;
-    return {
-      userId: 'admin-owner',
-      displayName: 'Store Administrator',
-      email: 'admin@layane-shop.com',
-      fullName: 'Store Owner'
-    };
-  }
 
   const user = await getChatGPTUser();
   if (user) return user;

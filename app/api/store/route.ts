@@ -75,7 +75,8 @@ export async function POST(r:Request){
         phone:z.string().max(40),
         currency:z.literal('MAD')
       }).parse(x.brand);
-      await db().prepare("INSERT INTO settings(key,value) VALUES('brand',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").bind(JSON.stringify(b)).run();
+      await db().prepare("DELETE FROM settings WHERE key='brand'").run();
+      await db().prepare("INSERT INTO settings(key,value) VALUES('brand',?)").bind(JSON.stringify(b)).run();
       return Response.json({ok:true});
     }
 
@@ -95,7 +96,8 @@ export async function POST(r:Request){
       }
 
       const updatedAdmins = [...currentAdmins, newAdmin];
-      await db().prepare("INSERT INTO settings(key,value) VALUES('admins',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").bind(JSON.stringify(updatedAdmins)).run();
+      await db().prepare("DELETE FROM settings WHERE key='admins'").run();
+      await db().prepare("INSERT INTO settings(key,value) VALUES('admins',?)").bind(JSON.stringify(updatedAdmins)).run();
       return Response.json({ok:true});
     }
 
@@ -103,7 +105,8 @@ export async function POST(r:Request){
       const {id} = z.object({id:z.string()}).parse(x);
       const currentAdmins = await getAdmins();
       const updatedAdmins = currentAdmins.filter((a: any) => a.id !== id);
-      await db().prepare("INSERT INTO settings(key,value) VALUES('admins',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").bind(JSON.stringify(updatedAdmins)).run();
+      await db().prepare("DELETE FROM settings WHERE key='admins'").run();
+      await db().prepare("INSERT INTO settings(key,value) VALUES('admins',?)").bind(JSON.stringify(updatedAdmins)).run();
       return Response.json({ok:true});
     }
 
