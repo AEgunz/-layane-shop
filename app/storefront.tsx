@@ -1,7 +1,22 @@
 'use client';
 import {useEffect,useState} from 'react';
 import {Leaf,ShieldCheck,Truck,Check,ShoppingBag,X} from 'lucide-react';
-export function Logo({brand}:any){return <span className="brand"><span className="mark">{brand.logo?<img src={brand.logo} alt=""/>:<Leaf size={24}/>}</span><span>{brand.name}<small>{brand.tagline}</small></span></span>}
+
+export function Logo({brand}:any){
+  return (
+    <span className="brand">
+      {brand.logo ? (
+        <img src={brand.logo} alt={brand.name||'logo'} className="brand-logo-img" />
+      ) : (
+        <>
+          <span className="mark"><Leaf size={24}/></span>
+          <span>{brand.name}<small>{brand.tagline}</small></span>
+        </>
+      )}
+    </span>
+  );
+}
+
 export function ProductView({page:p,brand:b,preview=false}:any){
   const ar=p.language==='ar';
   const fr=p.language==='fr';
