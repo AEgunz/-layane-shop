@@ -589,22 +589,23 @@ export default function Studio(){
                   href={getWhatsAppUrl(o.phone)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  title="تواصل عبر الواتساب"
+                  title="Tawasol via WhatsApp"
                   style={{
                     color:'#15803d',
                     fontWeight:'800',
                     display:'inline-flex',
                     alignItems:'center',
-                    gap:'5px',
+                    gap:'6px',
                     background:'#eefbf2',
-                    padding:'4px 10px',
+                    padding:'5px 12px',
                     borderRadius:'20px',
                     fontSize:'13px',
-                    border:'1px solid #bbf7d0'
+                    border:'1px solid #bbf7d0',
+                    textDecoration:'none'
                   }}
                   onClick={(e)=>e.stopPropagation()}
                 >
-                  <MessageCircle size={14}/>
+                  <MessageCircle size={15}/>
                   <span dir="ltr">{o.phone}</span>
                 </a>
               </td>
@@ -619,10 +620,10 @@ export default function Studio(){
                   </button>
                   <button
                     className="iconbutton"
-                    title="حذف الطلب"
+                    title="Delete Order"
                     onClick={async (e)=>{
                       e.stopPropagation();
-                      if(window.confirm('هل أنت متأكد من حذف هذا الطلب نهائياً؟')){
+                      if(window.confirm('Are you sure you want to permanently delete this order?')){
                         await save({action:'delete_order',id:o.id},'Order deleted successfully.');
                       }
                     }}
@@ -898,19 +899,19 @@ export default function Studio(){
                   style={{
                     display:'inline-flex',
                     alignItems:'center',
-                    gap:'6px',
+                    gap:'8px',
                     background:'#25D366',
                     color:'#fff',
-                    padding:'8px 16px',
-                    borderRadius:'20px',
+                    padding:'10px 18px',
+                    borderRadius:'25px',
                     fontWeight:'800',
                     fontSize:'14px',
                     marginBottom:'12px',
                     textDecoration:'none'
                   }}
                 >
-                  <MessageCircle size={16}/>
-                  تواصل عبر الواتساب (<span dir="ltr">{detail.phone}</span>)
+                  <MessageCircle size={18}/>
+                  WhatsApp: <span dir="ltr">{detail.phone}</span>
                 </a>
                 <p>{detail.address}<br/>{detail.city}</p>
               </div>
@@ -933,7 +934,7 @@ export default function Studio(){
                   type="button"
                   disabled={busy}
                   onClick={async ()=>{
-                    if(window.confirm('هل أنت متأكد من حذف هذا الطلب نهائياً؟')){
+                    if(window.confirm('Are you sure you want to permanently delete this order?')){
                       const r=await save({action:'delete_order',id:detail.id},'Order deleted successfully.');
                       if(r)setDetail(null);
                     }
@@ -941,7 +942,7 @@ export default function Studio(){
                   style={{border:0,background:'transparent',color:'#d32f2f',fontWeight:'700',cursor:'pointer',fontSize:'13px',display:'flex',alignItems:'center',gap:'4px'}}
                 >
                   <Trash2 size={16}/>
-                  حذف الطلب (Delete Order)
+                  Delete Order
                 </button>
               </div>
             </form>
