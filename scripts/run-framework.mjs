@@ -1,5 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import fs from "node:fs";
+import path from "node:path";
 import { readExecutionProfile } from "./execution-profile.mjs";
 
 const [command, ...args] = process.argv.slice(2);
@@ -21,3 +23,16 @@ const cli = new URL(managedLinux
 process.argv = [process.execPath, fileURLToPath(cli), command,
   ...(!managedLinux && command === "dev" ? ["--port", "5173"] : []), ...args];
 await import(cli.href);
+
+if (command === "build") {
+  try {
+    const projectRoot = fileURLToPath(new URL("../", import.meta.url));
+    const standaloneDir = path.join(projectRoot, "dist", "standalone");
+    const nextDir = path.join(projectRoot, ".next");
+    if (fs.existsSync(standaloneDir)) {
+      fs.cpSync(standaloneDir, nextDir, { recursive: true, force: true });
+    }
+  } catch (e) {
+    console.error("Post-build copy notice:", e);
+  }
+}
