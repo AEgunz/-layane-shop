@@ -1,9 +1,84 @@
-import {env} from 'cloudflare:workers';
 import {getChatGPTUser} from '@/app/chatgpt-auth';
 import {ZodError} from 'zod';
+import path from 'node:path';
+import fs from 'node:fs';
+
 export const defaultBrand={name:'layane-shop',tagline:'Care for your everyday',color:'#205b44',logo:'',phone:'',currency:'MAD'};
-export const starterPage={id:'comfort-bundle',name:'Everyday comfort bundle',slug:'everyday-comfort',price:249,comparePrice:399,status:'draft',template:'editorial',language:'ar',headline:'راحة أكثر، كل يوم',description:'اكتشف باقة layane-shop: دهن سنام الجمل مع واقي الركبة. منتجان في باقة واحدة لروتين العناية اليومي.',image:'/assets/bundle.png',benefits:'دهن سنام الجمل 100 مل\nواقي الركبة قابل للتعديل\nتوصيل إلى جميع أنحاء المغرب',cta:'اطلب الآن',sections:[{title:'دهن سنام الجمل',text:'إضافة بسيطة لروتين العناية اليومي.',image:'/assets/balm.png'},{title:'واقي الركبة',text:'تصميم قابل للتعديل ليلائم روتينك.',image:'/assets/brace.png'}],faq:[{q:'كيف يمكنني الطلب؟',a:'املأ استمارة الطلب وسنتواصل معك لتأكيد التفاصيل.'},{q:'كيف يتم الدفع؟',a:'الدفع نقداً عند استلام الطلب.'}],shipping:0,createdAt:new Date().toISOString()};
-export function db(){if(!env.DB)throw new Error('Store storage unavailable. Please try again.');return env.DB;}
+
+let nodeD1Instance: any = null;
+
+function getNodeD1() {
+  if (nodeD1Instance) return nodeD1Instance;
+  try {
+    const { DatabaseSync } = require('node:sqlite');
+    const dbDir = path.join(process.cwd(), '.data');
+    if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
+    const dbPath = path.join(dbDir, 'store.db');
+
+    class D1Stmt {
+      db: any; sql: string; params: any[];
+      constructor(db: any, sql: string, params: any[] = []) {
+        this.db = db; this.sql = sql; this.params = params;
+      }
+      bind(...args: any[]) { return new D1Stmt(this.db, this.sql, args); }
+      async first(col?: string) {
+        const stmt = this.db.prepare(this.sql);
+        const row = stmt.get(...this.params);
+        if (!row) return null;
+        if (col && typeof col === 'string') return row[col];
+        return row;
+      }
+      async all() {
+        const stmt = this.db.prepare(this.sql);
+        const results = stmt.all(...this.params);
+        return { results, success: true };
+      }
+      async run() {
+        const stmt = this.db.prepare(this.sql);
+        const info = stmt.run(...this.params);
+        return {
+          success: true,
+          meta: { changes: info.changes, last_row_id: info.lastInsertRowid }
+        };
+      }
+    }
+
+    class NodeD1 {
+      db: any;
+      constructor(pathStr: string) {
+        this.db = new DatabaseSync(pathStr);
+        this.db.exec("PRAGMA journal_mode = WAL;");
+        this.db.exec(`
+          CREATE TABLE IF NOT EXISTS pages (id TEXT PRIMARY KEY, slug TEXT UNIQUE, status TEXT, data TEXT);
+          CREATE TABLE IF NOT EXISTS orders (id TEXT PRIMARY KEY, customer TEXT, phone TEXT, city TEXT, address TEXT, product TEXT, quantity INTEGER, unit_price REAL, shipping REAL, total REAL, status TEXT, created_at TEXT, notes TEXT, website TEXT, page_id TEXT);
+          CREATE TABLE IF NOT EXISTS visits (page_id TEXT, day TEXT, token TEXT, count INTEGER DEFAULT 1, PRIMARY KEY (page_id, day, token));
+          CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT);
+        `);
+      }
+      prepare(sql: string) { return new D1Stmt(this.db, sql); }
+    }
+
+    nodeD1Instance = new NodeD1(dbPath);
+    return nodeD1Instance;
+  } catch (e) {
+    console.error('NodeD1 init error:', e);
+    return null;
+  }
+}
+
+export function db() {
+  try {
+    // @ts-ignore
+    const { env } = require('cloudflare:workers');
+    if (env?.DB) return env.DB;
+  } catch {}
+
+  const localDb = getNodeD1();
+  if (localDb) return localDb;
+
+  throw new Error('Store storage unavailable. Please try again.');
+}
+
 export async function brand(){const row=await db().prepare("SELECT value FROM settings WHERE key='brand'").first<{value:string}>();return row?JSON.parse(row.value):defaultBrand;}
 export async function admin(){const user=await getChatGPTUser();if(!user)throw new Error('AUTH');const owner=await db().prepare("SELECT value FROM settings WHERE key='owner'").first<{value:string}>();if(!owner){await db().prepare("INSERT OR IGNORE INTO settings(key,value) VALUES('owner',?)").bind(user.userId).run();}const check=await db().prepare("SELECT value FROM settings WHERE key='owner'").first<{value:string}>();if(check?.value!==user.userId)throw new Error('FORBIDDEN');return user;}
 export function safeImage(v:string){return v===''||/^\/assets\/[a-zA-Z0-9._/-]+$/.test(v)||/^https:\/\/[^\s]+$/.test(v);}

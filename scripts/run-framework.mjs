@@ -92,7 +92,7 @@ async function startServer() {
         duplex: body ? 'half' : undefined,
       });
 
-      const response = await handler.fetch(request, process.env);
+      const response = await handler.fetch(request, process.env, { props: {} });
 
       res.statusCode = response.status;
       response.headers.forEach((value, key) => {
