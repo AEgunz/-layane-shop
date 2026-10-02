@@ -97,7 +97,7 @@ function getSupabaseD1() {
 
         if (this.sql.includes('SELECT value FROM settings')) {
           let key = 'brand';
-          if (this.params[0]) key = this.params[0];
+          if (this.params[0]) key = String(this.params[0]);
           else if (this.sql.includes("'brand'")) key = 'brand';
           else if (this.sql.includes("'admins'")) key = 'admins';
 
@@ -110,7 +110,7 @@ function getSupabaseD1() {
 
         if (this.sql.includes('DELETE FROM settings')) {
           let key = 'admins';
-          if (this.params[0]) key = this.params[0];
+          if (this.params[0]) key = String(this.params[0]);
           else if (this.sql.includes("'brand'")) key = 'brand';
           else if (this.sql.includes("'admins'")) key = 'admins';
 
@@ -127,22 +127,36 @@ function getSupabaseD1() {
         if (this.sql.includes('INSERT INTO settings') || this.sql.includes('UPDATE settings')) {
           let key = 'admins';
           let value = '';
-          if (this.params.length === 2) {
-            key = this.params[0];
-            value = this.params[1];
+
+          if (this.params.length >= 2) {
+            key = String(this.params[0]);
+            value = String(this.params[1]);
           } else if (this.params.length === 1) {
-            value = this.params[0];
+            value = String(this.params[0]);
             if (this.sql.includes("'brand'")) key = 'brand';
-            if (this.sql.includes("'admins'")) key = 'admins';
+            else if (this.sql.includes("'admins'")) key = 'admins';
           }
+
+          if (key.startsWith('[') || key.startsWith('{')) {
+            key = this.sql.includes("'brand'") ? 'brand' : 'admins';
+          }
+
+          await fetch(`${cleanUrl}/rest/v1/settings?key=eq.${encodeURIComponent(key)}`, {
+            method: 'DELETE',
+            headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` }
+          });
+
+          await fetch(`${cleanUrl}/rest/v1/settings?value=is.null`, {
+            method: 'DELETE',
+            headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` }
+          });
 
           await fetch(`${cleanUrl}/rest/v1/settings`, {
             method: 'POST',
             headers: {
               'apikey': supabaseKey,
               'Authorization': `Bearer ${supabaseKey}`,
-              'Content-Type': 'application/json',
-              'Prefer': 'resolution=merge-duplicates'
+              'Content-Type': 'application/json'
             },
             body: JSON.stringify({ key, value })
           });
@@ -360,9 +374,12 @@ export async function brand(){
   try {
     const row=await db().prepare("SELECT value FROM settings WHERE key='brand'").first<{value:string}>();
     if (row) {
-      const parsed = JSON.parse(row.value);
-      if (!parsed.logo) parsed.logo = '/logo.png';
-      return parsed;
+      const valStr = typeof row === 'string' ? row : ((row as any).value || (row as any).data);
+      if (valStr && typeof valStr === 'string' && valStr.startsWith('{')) {
+        const parsed = JSON.parse(valStr);
+        if (!parsed.logo) parsed.logo = '/logo.png';
+        return parsed;
+      }
     }
     return defaultBrand;
   } catch {
@@ -373,10 +390,15 @@ export async function brand(){
 export async function getAdmins() {
   try {
     const row = await db().prepare("SELECT value FROM settings WHERE key='admins'").first<{value:string}>();
-    if (row && row.value) {
-      return JSON.parse(row.value);
+    if (row) {
+      const valStr = typeof row === 'string' ? row : ((row as any).value || (row as any).data);
+      if (valStr && typeof valStr === 'string' && valStr.startsWith('[')) {
+        return JSON.parse(valStr);
+      }
     }
-  } catch {}
+  } catch (e) {
+    console.error('getAdmins error:', e);
+  }
   return [
     {
       id: 'default-admin',
