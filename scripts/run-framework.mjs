@@ -53,7 +53,8 @@ if (command === "build") {
     fs.writeFileSync(path.join(standaloneDir, "package.json"), pkgContent);
     fs.writeFileSync(path.join(nextStandaloneDir, "package.json"), pkgContent);
 
-    const serverJsContent = `import http from 'node:http';
+    const serverJsContent = `process.env.NODE_NO_WARNINGS = '1';
+import http from 'node:http';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
