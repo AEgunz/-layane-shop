@@ -8,6 +8,168 @@ export const defaultBrand={name:'layane-shop',tagline:'Care for your everyday',c
 
 let nodeD1Instance: any = null;
 
+function getSupabaseD1() {
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) return null;
+
+  const cleanUrl = supabaseUrl.replace(/\/$/, '');
+
+  class SupabaseStmt {
+    sql: string; params: any[];
+    constructor(sql: string, params: any[] = []) {
+      this.sql = sql; this.params = params;
+    }
+    bind(...args: any[]) { return new SupabaseStmt(this.sql, args); }
+
+    async execApi() {
+      try {
+        if (this.sql.includes('SELECT data FROM pages')) {
+          if (this.sql.includes("WHERE slug=?")) {
+            const slug = this.params[0];
+            const res = await fetch(`${cleanUrl}/rest/v1/pages?slug=eq.${encodeURIComponent(slug)}&status=eq.published&select=data`, {
+              headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` }
+            });
+            const data = await res.json();
+            return data || [];
+          }
+          const res = await fetch(`${cleanUrl}/rest/v1/pages?select=data`, {
+            headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` }
+          });
+          const data = await res.json();
+          return data || [];
+        }
+
+        if (this.sql.includes('INSERT INTO pages')) {
+          const [id, slug, status, dataStr] = this.params;
+          await fetch(`${cleanUrl}/rest/v1/pages`, {
+            method: 'POST',
+            headers: {
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'resolution=merge-duplicates'
+            },
+            body: JSON.stringify({ id, slug, status, data: dataStr })
+          });
+          return [];
+        }
+
+        if (this.sql.includes('SELECT * FROM orders')) {
+          const res = await fetch(`${cleanUrl}/rest/v1/orders?select=*`, {
+            headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` }
+          });
+          const data = await res.json();
+          return data || [];
+        }
+
+        if (this.sql.includes('INSERT INTO orders')) {
+          const [id, page_id, product, customer, phone, city, address, quantity, unit_price, shipping, total, notes] = this.params;
+          await fetch(`${cleanUrl}/rest/v1/orders`, {
+            method: 'POST',
+            headers: {
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'resolution=merge-duplicates'
+            },
+            body: JSON.stringify({
+              id, page_id, product, customer, phone, city, address, quantity, unit_price, shipping, total, status: 'new', created_at: new Date().toISOString(), notes
+            })
+          });
+          return [];
+        }
+
+        if (this.sql.includes('UPDATE orders SET status=? WHERE id=?')) {
+          const [status, id] = this.params;
+          await fetch(`${cleanUrl}/rest/v1/orders?id=eq.${encodeURIComponent(id)}`, {
+            method: 'PATCH',
+            headers: {
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ status })
+          });
+          return [];
+        }
+
+        if (this.sql.includes('SELECT value FROM settings WHERE key=?')) {
+          const key = this.params[0];
+          const res = await fetch(`${cleanUrl}/rest/v1/settings?key=eq.${encodeURIComponent(key)}&select=value`, {
+            headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` }
+          });
+          const data = await res.json();
+          return data || [];
+        }
+
+        if (this.sql.includes('INSERT INTO settings') || this.sql.includes('UPDATE settings')) {
+          const [key, value] = this.params;
+          await fetch(`${cleanUrl}/rest/v1/settings`, {
+            method: 'POST',
+            headers: {
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'resolution=merge-duplicates'
+            },
+            body: JSON.stringify({ key, value })
+          });
+          return [];
+        }
+
+        if (this.sql.includes('SELECT page_id,day')) {
+          const res = await fetch(`${cleanUrl}/rest/v1/visits?select=page_id,day,count`, {
+            headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` }
+          });
+          const data = await res.json();
+          return data || [];
+        }
+
+        if (this.sql.includes('INSERT OR IGNORE INTO visits')) {
+          const [page_id, token, day] = this.params;
+          await fetch(`${cleanUrl}/rest/v1/visits`, {
+            method: 'POST',
+            headers: {
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'resolution=ignore-duplicates'
+            },
+            body: JSON.stringify({ page_id, token, day, count: 1 })
+          });
+          return [];
+        }
+
+        return [];
+      } catch (err) {
+        console.error('Supabase Exec Error:', err);
+        return [];
+      }
+    }
+
+    async first(col?: string) {
+      const rows = await this.execApi();
+      if (!rows || rows.length === 0) return null;
+      if (col && typeof col === 'string') return rows[0][col];
+      return rows[0];
+    }
+    async all() {
+      const rows = await this.execApi();
+      return { results: rows, success: true };
+    }
+    async run() {
+      await this.execApi();
+      return { success: true, meta: { changes: 1 } };
+    }
+  }
+
+  return {
+    prepare(sql: string) { return new SupabaseStmt(sql); }
+  };
+}
+
 function getTursoD1() {
   const url = process.env.TURSO_DATABASE_URL || process.env.DATABASE_URL;
   const token = process.env.TURSO_AUTH_TOKEN;
@@ -144,6 +306,9 @@ function getNodeD1() {
 }
 
 export function db() {
+  const supabaseDb = getSupabaseD1();
+  if (supabaseDb) return supabaseDb;
+
   const tursoDb = getTursoD1();
   if (tursoDb) return tursoDb;
 
