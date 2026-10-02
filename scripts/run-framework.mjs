@@ -16,15 +16,14 @@ if (managedLinux && command === "build") {
   process.exit(result.status ?? 1);
 }
 
-// Import in this process so the preview owner retains its PID and signals.
 const cli = new URL(managedLinux
   ? "../node_modules/vite/bin/vite.js"
   : "../node_modules/vinext/dist/cli.js", import.meta.url);
-process.argv = [process.execPath, fileURLToPath(cli), command,
-  ...(!managedLinux && command === "dev" ? ["--port", "5173"] : []), ...args];
-await import(cli.href);
 
 if (command === "build") {
+  const result = spawnSync("node", [fileURLToPath(cli), "build", ...args], { stdio: "inherit" });
+  if (result.error) throw result.error;
+
   try {
     const projectRoot = fileURLToPath(new URL("../", import.meta.url));
     const distDir = path.join(projectRoot, "dist");
@@ -50,7 +49,82 @@ if (command === "build") {
       fs.cpSync(serverDir, path.join(nextStandaloneDir, "server"), { recursive: true, force: true });
     }
 
-    const serverJsContent = `import path from 'node:path';\nimport { fileURLToPath } from 'node:url';\nconst __dirname = path.dirname(fileURLToPath(import.meta.url));\nimport(path.join(__dirname, 'server', 'index.js')).catch(()=>{});\n`;
+    const pkgContent = JSON.stringify({ name: "layane-shop-standalone", version: "1.0.0", type: "module" }, null, 2);
+    fs.writeFileSync(path.join(standaloneDir, "package.json"), pkgContent);
+    fs.writeFileSync(path.join(nextStandaloneDir, "package.json"), pkgContent);
+
+    const serverJsContent = `import http from 'node:http';
+
+const PORT = process.env.PORT || 3000;
+
+async function startServer() {
+  const handlerModule = await import('./server/index.js');
+  const handler = handlerModule.default || handlerModule;
+
+  const server = http.createServer(async (req, res) => {
+    try {
+      const protocol = req.headers['x-forwarded-proto'] || 'http';
+      const host = req.headers.host || \`localhost:\${PORT}\`;
+      const url = new URL(req.url || '/', \`\${protocol}://\${host}\`);
+
+      const headers = new Headers();
+      for (const [key, val] of Object.entries(req.headers)) {
+        if (val) {
+          if (Array.isArray(val)) {
+            for (const v of val) headers.append(key, v);
+          } else {
+            headers.set(key, val);
+          }
+        }
+      }
+
+      let body = null;
+      if (req.method !== 'GET' && req.method !== 'HEAD') {
+        const buffers = [];
+        for await (const chunk of req) buffers.push(chunk);
+        body = Buffer.concat(buffers);
+      }
+
+      const request = new Request(url.href, {
+        method: req.method,
+        headers,
+        body,
+        duplex: body ? 'half' : undefined,
+      });
+
+      const response = await handler.fetch(request, process.env);
+
+      res.statusCode = response.status;
+      response.headers.forEach((value, key) => {
+        res.setHeader(key, value);
+      });
+
+      if (response.body) {
+        const reader = response.body.getReader();
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          res.write(value);
+        }
+      }
+      res.end();
+    } catch (err) {
+      console.error('Server error:', err);
+      if (!res.headersSent) {
+        res.statusCode = 500;
+        res.end('Internal Server Error');
+      }
+    }
+  });
+
+  server.listen(PORT, () => {
+    console.log(\`Server listening on port \${PORT}\`);
+  });
+}
+
+startServer();
+`;
+
     fs.writeFileSync(path.join(nextStandaloneDir, "server.js"), serverJsContent);
     fs.writeFileSync(path.join(standaloneDir, "server.js"), serverJsContent);
     fs.writeFileSync(path.join(nextDir, "server.js"), serverJsContent);
@@ -59,7 +133,14 @@ if (command === "build") {
       path.join(nextDir, "required-server-files.json"),
       JSON.stringify({ version: "1.0.0", config: {}, appDir: true, relativeAppDir: "", files: [], ignore: [] })
     );
+    console.log("Post-build standalone server successfully generated.");
   } catch (e) {
-    console.error("Post-build copy notice:", e);
+    console.error("Post-build copy error:", e);
   }
+
+  process.exit(0);
 }
+
+process.argv = [process.execPath, fileURLToPath(cli), command,
+  ...(!managedLinux && command === "dev" ? ["--port", "5173"] : []), ...args];
+await import(cli.href);
