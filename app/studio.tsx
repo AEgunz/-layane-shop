@@ -492,7 +492,15 @@ export default function Studio(){
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(() => {});
+      navigator.serviceWorker.register('/sw.js').then(async (reg) => {
+        try {
+          if ('periodicSync' in reg) {
+            await (reg as any).periodicSync.register('check-new-orders', {
+              minInterval: 12 * 60 * 1000
+            });
+          }
+        } catch {}
+      }).catch(() => {});
     }
     if (typeof window !== 'undefined' && 'Notification' in window) {
       setNotifGranted(Notification.permission === 'granted');
