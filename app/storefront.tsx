@@ -25,6 +25,121 @@ export function Logo({brand}:{brand:any}){
   );
 }
 
+function OrderFormSection({ sectionId, done, formState, setFormState, quantity, setQuantity, order, busy, error, ar, fr, p }: any) {
+  const refCode = typeof done === 'object' ? (done as any).ref : done;
+  const whatsappUrl = typeof done === 'object' ? (done as any).whatsappUrl : '';
+
+  return (
+    <section id={sectionId} className="ordersection" style={{ margin: '20px auto' }}>
+      {done ? (
+        <div className="successbox" style={{ textAlign: 'center', padding: '35px 20px' }}>
+          <Check size={40} style={{ color: '#205b44', margin: '0 auto 12px auto' }} />
+          <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#205b44', margin: '0 0 10px 0' }}>
+            {ar ? 'تم استلام طلبك بنجاح!' : 'Your order is received!'}
+          </h2>
+          <p style={{ fontSize: '15px', color: '#444', marginBottom: '6px' }}>
+            {ar ? 'الرقم المرجعي للطلب' : 'Order reference'}: <strong style={{ color: '#205b44' }}>#{refCode}</strong>
+          </p>
+          <p style={{ fontSize: '14px', color: '#666', marginBottom: '20px' }}>
+            {ar ? 'سنتواصل معك هاتفياً لتأكيد التفاصيل والتوصيل.' : 'We will contact you shortly.'}
+          </p>
+
+          {whatsappUrl && (
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="storebutton"
+              style={{
+                background: '#25D366',
+                color: '#fff',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                textDecoration: 'none',
+                padding: '12px 24px',
+                fontSize: '15px',
+                fontWeight: '800',
+                borderRadius: '30px',
+                boxShadow: '0 6px 20px rgba(37,211,102,0.35)',
+                margin: '10px auto 0 auto'
+              }}
+            >
+              <MessageCircle size={18} />
+              {ar ? 'إرسال تفاصيل الطلب عبر الواتساب (WhatsApp)' : 'Send Order Alert on WhatsApp'}
+            </a>
+          )}
+        </div>
+      ) : (
+        <form onSubmit={order}>
+          <h3>{ar ? 'معلومات التوصيل' : fr ? 'Détails de livraison' : 'Delivery details'}</h3>
+          <input
+            name="name"
+            required
+            minLength={2}
+            maxLength={120}
+            autoComplete="name"
+            placeholder={ar ? 'الاسم الكامل' : 'Full name'}
+            dir="rtl"
+            value={formState.name}
+            onChange={e => setFormState({ ...formState, name: e.target.value })}
+          />
+          <input
+            name="phone"
+            type="tel"
+            required
+            pattern="[+0-9 ]{8,25}"
+            autoComplete="tel"
+            placeholder={ar ? 'رقم الهاتف (0600000000)' : 'Phone number'}
+            dir="rtl"
+            value={formState.phone}
+            onChange={e => setFormState({ ...formState, phone: e.target.value })}
+          />
+          <input
+            name="city"
+            required
+            minLength={2}
+            maxLength={100}
+            autoComplete="address-level2"
+            placeholder={ar ? 'المدينة' : 'City'}
+            dir="rtl"
+            value={formState.city}
+            onChange={e => setFormState({ ...formState, city: e.target.value })}
+          />
+          <textarea
+            name="address"
+            rows={2}
+            required
+            minLength={3}
+            maxLength={500}
+            autoComplete="street-address"
+            placeholder={ar ? 'العنوان الكامل (الحي / الشارع / رقم المنزل)' : 'Full address'}
+            dir="rtl"
+            value={formState.address}
+            onChange={e => setFormState({ ...formState, address: e.target.value })}
+          />
+
+          <div className="qty-row-centered">
+            <span className="qty-row-label">{ar ? 'الكمية المطلوبة:' : 'Quantity:'}</span>
+            <div className="qty-counter-pills" dir="ltr">
+              <button type="button" onClick={() => setQuantity(Math.max(1, quantity - 1))}>-</button>
+              <span className="qty-num">{quantity}</span>
+              <button type="button" onClick={() => setQuantity(Math.min(10, quantity + 1))}>+</button>
+            </div>
+          </div>
+
+          <input className="honeypot" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true"/>
+          {error && <p className="error" role="alert">{error}</p>}
+          <button className="storebutton" disabled={busy}>
+            {busy ? (ar ? 'جار الإرسال…' : 'Submitting…') : <>{p.cta || 'اطلب الآن'} - <span dir="ltr">{p.price * quantity + p.shipping} DH</span></>}
+          </button>
+          <small>{ar ? 'الدفع عند الاستلام والتوصيل إلى باب منزلك' : 'Cash on delivery • Delivery to your doorstep'}</small>
+        </form>
+      )}
+    </section>
+  );
+}
+
 export function ProductView({page:p,brand:b,preview}:any){
   const [quantity,setQuantity]=useState(1);
   const [formState,setFormState]=useState({name:'',phone:'',city:'',address:''});
@@ -175,120 +290,19 @@ export function ProductView({page:p,brand:b,preview}:any){
   const firstImage = p.images && p.images.length > 0 ? p.images[0] : p.image;
   const remainingImages = p.images && p.images.length > 1 ? p.images.slice(1) : [];
 
-  function OrderForm({ sectionId = 'order' }: { sectionId?: string }) {
-    const refCode = typeof done === 'object' ? (done as any).ref : done;
-    const whatsappUrl = typeof done === 'object' ? (done as any).whatsappUrl : '';
-
-    return (
-      <section id={sectionId} className="ordersection" style={{ margin: '20px auto' }}>
-        {done ? (
-          <div className="successbox" style={{ textAlign: 'center', padding: '35px 20px' }}>
-            <Check size={40} style={{ color: '#205b44', margin: '0 auto 12px auto' }} />
-            <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#205b44', margin: '0 0 10px 0' }}>
-              {ar ? 'تم استلام طلبك بنجاح!' : 'Your order is received!'}
-            </h2>
-            <p style={{ fontSize: '15px', color: '#444', marginBottom: '6px' }}>
-              {ar ? 'الرقم المرجعي للطلب' : 'Order reference'}: <strong style={{ color: '#205b44' }}>#{refCode}</strong>
-            </p>
-            <p style={{ fontSize: '14px', color: '#666', marginBottom: '20px' }}>
-              {ar ? 'سنتواصل معك هاتفياً لتأكيد التفاصيل والتوصيل.' : 'We will contact you shortly.'}
-            </p>
-
-            {whatsappUrl && (
-              <a
-                href={whatsappUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="storebutton"
-                style={{
-                  background: '#25D366',
-                  color: '#fff',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  textDecoration: 'none',
-                  padding: '12px 24px',
-                  fontSize: '15px',
-                  fontWeight: '800',
-                  borderRadius: '30px',
-                  boxShadow: '0 6px 20px rgba(37,211,102,0.35)',
-                  margin: '10px auto 0 auto'
-                }}
-              >
-                <MessageCircle size={18} />
-                {ar ? 'إرسال تفاصيل الطلب عبر الواتساب (WhatsApp)' : 'Send Order Alert on WhatsApp'}
-              </a>
-            )}
-          </div>
-        ) : (
-          <form onSubmit={order}>
-            <h3>{ar ? 'معلومات التوصيل' : fr ? 'Détails de livraison' : 'Delivery details'}</h3>
-            <input
-              name="name"
-              required
-              minLength={2}
-              maxLength={120}
-              autoComplete="name"
-              placeholder={ar ? 'الاسم الكامل' : 'Full name'}
-              dir="rtl"
-              value={formState.name}
-              onChange={e => setFormState({ ...formState, name: e.target.value })}
-            />
-            <input
-              name="phone"
-              type="tel"
-              required
-              pattern="[+0-9 ]{8,25}"
-              autoComplete="tel"
-              placeholder={ar ? 'رقم الهاتف (0600000000)' : 'Phone number'}
-              dir="rtl"
-              value={formState.phone}
-              onChange={e => setFormState({ ...formState, phone: e.target.value })}
-            />
-            <input
-              name="city"
-              required
-              minLength={2}
-              maxLength={100}
-              autoComplete="address-level2"
-              placeholder={ar ? 'المدينة' : 'City'}
-              dir="rtl"
-              value={formState.city}
-              onChange={e => setFormState({ ...formState, city: e.target.value })}
-            />
-            <textarea
-              name="address"
-              rows={2}
-              required
-              minLength={3}
-              maxLength={500}
-              autoComplete="street-address"
-              placeholder={ar ? 'العنوان الكامل (الحي / الشارع / رقم المنزل)' : 'Full address'}
-              dir="rtl"
-              value={formState.address}
-              onChange={e => setFormState({ ...formState, address: e.target.value })}
-            />
-
-            <div className="qty-row-centered">
-              <span className="qty-row-label">{ar ? 'الكمية المطلوبة:' : 'Quantity:'}</span>
-              <div className="qty-counter-pills" dir="ltr">
-                <button type="button" onClick={() => setQuantity(Math.max(1, quantity - 1))}>-</button>
-                <span className="qty-num">{quantity}</span>
-                <button type="button" onClick={() => setQuantity(Math.min(10, quantity + 1))}>+</button>
-              </div>
-            </div>
-
-            <input className="honeypot" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true"/>
-            {error && <p className="error" role="alert">{error}</p>}
-            <button className="storebutton" disabled={busy}>
-              {busy ? (ar ? 'جار الإرسال…' : 'Submitting…') : <>{p.cta || 'اطلب الآن'} - <span dir="ltr">{p.price * quantity + p.shipping} DH</span></>}
-            </button>
-            <small>{ar ? 'الدفع عند الاستلام والتوصيل إلى باب منزلك' : 'Cash on delivery • Delivery to your doorstep'}</small>
-          </form>
-        )}
-      </section>
-    );
-  }
+  const formProps = {
+    done,
+    formState,
+    setFormState,
+    quantity,
+    setQuantity,
+    order,
+    busy,
+    error,
+    ar,
+    fr,
+    p
+  };
 
   return (
     <div className={'storefront '+p.template} dir={ar?'rtl':'ltr'} style={{'--brand':b.color} as any}>
@@ -327,7 +341,7 @@ export function ProductView({page:p,brand:b,preview}:any){
       )}
 
       {/* 2. FIRST COD ORDER FORM: معلومات التوصيل 1 */}
-      <OrderForm sectionId="order" />
+      <OrderFormSection sectionId="order" {...formProps} />
 
       {/* 3. LANDING PAGE IMAGES 2, 3, 4, 5 */}
       {remainingImages.length > 0 && (
@@ -341,7 +355,7 @@ export function ProductView({page:p,brand:b,preview}:any){
       )}
 
       {/* 4. SECOND COD ORDER FORM: معلومات التوصيل 2 */}
-      <OrderForm sectionId="order2" />
+      <OrderFormSection sectionId="order2" {...formProps} />
 
       {/* 5. CUSTOMER REVIEWS: أراء زبنائنا */}
       <section className="reviews-section" style={{ padding: '20px 15px', maxWidth: '650px', margin: '20px auto' }}>
