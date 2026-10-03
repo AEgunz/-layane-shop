@@ -289,7 +289,7 @@ export function ProductView({page:p,brand:b,preview}:any){
       ) : firstImage ? (
         <section className="landing-banner-section">
           <div className="landing-banner-wrap">
-            <img src={firstImage} alt={p.name} className="landing-banner-img"/>
+            <img src={firstImage} alt={p.name} className="landing-banner-img" fetchPriority="high" loading="eager" decoding="sync" />
             <div className="banner-cta-bar">
               <div className="banner-cta-text">
                 <h4>{ar?'أكمل معلوماتك وسنتصل بك لتأكيد الطلب':fr?'Complétez vos détails et nous vous contacterons':'Fill in your details and we will call you to confirm your order'}</h4>
@@ -321,7 +321,7 @@ export function ProductView({page:p,brand:b,preview}:any){
         <section className="seamless-images-section">
           <div className="seamless-images-wrap">
             {remainingImages.map((imgUrl: string, idx: number) => (
-              <img key={idx} src={imgUrl} alt={`${p.name} ${idx + 2}`} className="seamless-img" />
+              <img key={idx} src={imgUrl} alt={`${p.name} ${idx + 2}`} className="seamless-img" loading="lazy" decoding="async" />
             ))}
           </div>
         </section>
@@ -340,7 +340,7 @@ export function ProductView({page:p,brand:b,preview}:any){
         </div>
         {p.reviewsImage ? (
           <div className="reviews-image-box">
-            <img src={p.reviewsImage} alt={ar ? 'آراء الزبناء' : 'Customer Reviews'} className="reviews-img" style={{ width: '100%', borderRadius: '12px', border: '1px solid #e1e9df' }} />
+            <img src={p.reviewsImage} alt={ar ? 'آراء الزبناء' : 'Customer Reviews'} className="reviews-img" loading="lazy" decoding="async" style={{ width: '100%', borderRadius: '12px', border: '1px solid #e1e9df' }} />
           </div>
         ) : (
           <div className="reviews-grid" style={{ display: 'grid', gap: '12px' }}>
