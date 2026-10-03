@@ -1,12 +1,29 @@
 'use client';
 import {useState,useEffect,useCallback} from 'react';
-import {LayoutDashboard,PanelsTopLeft,ShoppingBag,ChartNoAxesCombined,Settings,Plus,Leaf,ArrowUpRight,Globe,MousePointer2,Wallet,Search,ChevronDown,Download,ExternalLink,Copy,Pencil,X,Monitor,Smartphone,Check,Archive,RefreshCw,ImagePlus,ArrowLeft,ArrowRight,Eye,ShieldCheck,Upload,LogOut,Lock,MessageCircle,Trash2} from 'lucide-react';
+import {LayoutDashboard,PanelsTopLeft,ShoppingBag,ChartNoAxesCombined,Settings,Plus,Leaf,ArrowUpRight,Globe,MousePointer2,Wallet,Search,ChevronDown,Download,ExternalLink,Copy,Pencil,X,Monitor,Smartphone,Check,Archive,RefreshCw,ImagePlus,ArrowLeft,ArrowRight,Eye,ShieldCheck,Upload,LogOut,Lock,MessageCircle,Trash2,Bell} from 'lucide-react';
 import {Logo,ProductView} from './storefront';
 import JSZip from 'jszip';
 
 const money=(n:number)=>new Intl.NumberFormat('en-MA',{maximumFractionDigits:2}).format(n)+' DH';
 const niceDate=(s:string)=>new Date(s).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'Africa/Casablanca'});
 const navs:any[]=[[LayoutDashboard,'Overview'],[PanelsTopLeft,'Landing pages'],[ShoppingBag,'Orders'],[ChartNoAxesCombined,'Analytics'],[Settings,'Brand settings']];
+
+function playNotificationChime() {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+    osc.frequency.setValueAtTime(880, ctx.currentTime + 0.15);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.6);
+  } catch {}
+}
 
 async function api(body?:any){
   let sessionToken = '';
@@ -469,21 +486,73 @@ export default function Studio(){
   const [password, setPassword] = useState('');
   const [loginErr, setLoginErr] = useState('');
 
-  const reload=useCallback(async()=>{
-    try{
-      const d=await api();
+  const [prevOrderCount, setPrevOrderCount] = useState<number | null>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [notifGranted, setNotifGranted] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      setNotifGranted(Notification.permission === 'granted');
+    }
+
+    const handlePrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handlePrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handlePrompt);
+  }, []);
+
+  async function requestNotificationPermission() {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      const perm = await Notification.requestPermission();
+      if (perm === 'granted') {
+        setNotifGranted(true);
+        playNotificationChime();
+        new Notification('📢 تم تفعيل الإشعارات الفورية على الهاتف!', {
+          body: 'ستصلك إشعارات وتنبيهات فورية بجميع الطلبيات الجديدة مباشرة على هاتفك.',
+          icon: '/icon.png'
+        });
+      }
+    }
+  }
+
+  const reload = useCallback(async () => {
+    try {
+      const d = await api();
+      if (d && Array.isArray(d.orders)) {
+        if (prevOrderCount !== null && d.orders.length > prevOrderCount) {
+          const latestOrder = d.orders[0];
+          playNotificationChime();
+          if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+            new Notification(`🚨 طلب جديد #${latestOrder.id.slice(0, 8).toUpperCase()}!`, {
+              body: `الزبون: ${latestOrder.customer} (${latestOrder.city}) • المجموع: ${latestOrder.total} DH`,
+              icon: '/icon.png',
+              badge: '/icon.png'
+            });
+          }
+        }
+        setPrevOrderCount(d.orders.length);
+      }
       setData(d);
       setError('');
       setLoginErr('');
       return d;
-    }catch(e:any){
+    } catch (e: any) {
       setError(e.message);
     }
-  },[]);
+  }, [prevOrderCount]);
 
-  useEffect(()=>{
+  useEffect(() => {
     reload();
-  },[reload]);
+    const interval = setInterval(() => {
+      reload();
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [reload]);
 
   useEffect(()=>{if(toast){const t=setTimeout(()=>setToast(''),4500);return()=>clearTimeout(t)}},[toast]);
   useEffect(()=>{const close=(e:KeyboardEvent)=>{if(e.key==='Escape'){setDetail(null)}};window.addEventListener('keydown',close);return()=>window.removeEventListener('keydown',close)},[]);
@@ -710,6 +779,43 @@ export default function Studio(){
         <header>
           <span>Workspace <span className="slash">/</span><strong>{tab}</strong></span>
           <div className="headerend">
+            {deferredPrompt && (
+              <button
+                type="button"
+                onClick={async () => {
+                  deferredPrompt.prompt();
+                  const { outcome } = await deferredPrompt.userChoice;
+                  if (outcome === 'accepted') setDeferredPrompt(null);
+                }}
+                style={{
+                  padding: '6px 14px',
+                  fontSize: '12px',
+                  borderRadius: '20px',
+                  background: '#205b44',
+                  color: '#fff',
+                  border: 0,
+                  fontWeight: '700',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                <Smartphone size={14} />
+                تثبيت التطبيق على الهاتف (Install Mobile App)
+              </button>
+            )}
+
+            <button
+              className="iconbutton"
+              type="button"
+              title={notifGranted ? 'الإشعارات الفورية مفعّلة' : 'تفعيل الإشعارات الفورية على الهاتف'}
+              onClick={requestNotificationPermission}
+              style={{ color: notifGranted ? '#205b44' : '#888' }}
+            >
+              <Bell size={18} />
+            </button>
+
             <span className="livebadge"><span/>{activeUser.name} (@{activeUser.username})</span>
             <button className="iconbutton" title="Refresh store data" onClick={reload}><RefreshCw size={17}/></button>
             <div className="avatar">{activeUser.name[0].toUpperCase()}</div>

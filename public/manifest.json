@@ -1,0 +1,23 @@
+{
+  "name": "layane-shop Store Studio",
+  "short_name": "layane Admin",
+  "description": "Store Administration & Mobile Order Management App",
+  "start_url": "/admin",
+  "display": "standalone",
+  "background_color": "#205b44",
+  "theme_color": "#205b44",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
