@@ -529,5 +529,16 @@ export async function admin(){
 }
 
 export function safeImage(v:string){return v===''||/^\/assets\/[a-zA-Z0-9._/-]+$/.test(v)||/^\/logo\.png$/.test(v)||/^https:\/\/[^\s]+$/.test(v);}
-export function error(e:unknown){console.error(e);if(e instanceof ZodError){const first=e.issues[0];return Response.json({error:`Please check ${first.path.join(' › ') || 'your input'}: ${first.message}`},{status:400});}const msg=e instanceof Error?e.message:'Unexpected error';return Response.json({error:msg==='AUTH'?'Please sign in to manage your store.':msg==='FORBIDDEN'?'Only the store administrator can access this area.':msg.includes('UNIQUE')?'That page URL is already in use. Choose another slug.':'Unable to complete this request. Your changes have not been discarded. Please try again.'},{status:msg==='AUTH'?401:msg==='FORBIDDEN'?403:400});}
+export function error(e:unknown){
+  console.error(e);
+  if(e instanceof ZodError){
+    const first=e.issues[0];
+    return Response.json({error:`Please check ${first.path.join(' › ') || 'your input'}: ${first.message}`},{status:400,headers:{'Content-Type':'application/json'}});
+  }
+  const msg=e instanceof Error?e.message:'Unexpected error';
+  const status=msg==='AUTH'?401:msg==='FORBIDDEN'?403:400;
+  return Response.json({
+    error:msg==='AUTH'?'Please sign in to manage your store.':msg==='FORBIDDEN'?'Only the store administrator can access this area.':msg.includes('UNIQUE')?'That page URL is already in use. Choose another slug.':'Unable to complete this request. Please try again.'
+  },{status,headers:{'Content-Type':'application/json'}});
+}
 export function originCheck(_r:Request){return true;}

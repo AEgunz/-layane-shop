@@ -29,8 +29,18 @@ async function api(body?:any){
     headers: reqHeaders
   });
 
-  const d: any = await r.json();
-  if (!r.ok) throw new Error(d.error);
+  const text = await r.text();
+  let d: any = {};
+  try {
+    d = JSON.parse(text);
+  } catch (err) {
+    if (r.status === 401 || text.includes('AUTH')) {
+      throw new Error('Please sign in to manage your store.');
+    }
+    throw new Error('Unable to complete this request. Please try again.');
+  }
+
+  if (!r.ok) throw new Error(d.error || 'Server error');
   return d;
 }
 
