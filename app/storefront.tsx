@@ -27,6 +27,7 @@ export function Logo({brand}:{brand:any}){
 
 export function ProductView({page:p,brand:b,preview}:any){
   const [quantity,setQuantity]=useState(1);
+  const [formState,setFormState]=useState({name:'',phone:'',city:'',address:''});
   const [done,setDone]=useState<any>('');
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState('');
@@ -136,6 +137,11 @@ export function ProductView({page:p,brand:b,preview}:any){
     setBusy(true);
     setError('');
     const f=new FormData(e.currentTarget);
+    const nameVal = String(f.get('name') || formState.name);
+    const phoneVal = String(f.get('phone') || formState.phone);
+    const cityVal = String(f.get('city') || formState.city);
+    const addressVal = String(f.get('address') || formState.address);
+
     try{
       const res=await fetch('/api/public',{
         method:'POST',
@@ -147,10 +153,10 @@ export function ProductView({page:p,brand:b,preview}:any){
           shipping:p.shipping,
           productName:p.name,
           id,
-          name:f.get('name'),
-          phone:f.get('phone'),
-          city:f.get('city'),
-          address:f.get('address'),
+          name:nameVal,
+          phone:phoneVal,
+          city:cityVal,
+          address:addressVal,
           notes:'',
           quantity,
           website:f.get('website')||''
@@ -217,10 +223,51 @@ export function ProductView({page:p,brand:b,preview}:any){
         ) : (
           <form onSubmit={order}>
             <h3>{ar ? 'معلومات التوصيل' : fr ? 'Détails de livraison' : 'Delivery details'}</h3>
-            <input name="name" required minLength={2} maxLength={120} autoComplete="name" placeholder={ar ? 'الاسم الكامل' : 'Full name'} dir="rtl"/>
-            <input name="phone" type="tel" required pattern="[+0-9 ]{8,25}" autoComplete="tel" placeholder={ar ? 'رقم الهاتف (0600000000)' : 'Phone number'} dir="rtl"/>
-            <input name="city" required minLength={2} maxLength={100} autoComplete="address-level2" placeholder={ar ? 'المدينة' : 'City'} dir="rtl"/>
-            <textarea name="address" rows={2} required minLength={3} maxLength={500} autoComplete="street-address" placeholder={ar ? 'العنوان الكامل (الحي / الشارع / رقم المنزل)' : 'Full address'} dir="rtl"/>
+            <input
+              name="name"
+              required
+              minLength={2}
+              maxLength={120}
+              autoComplete="name"
+              placeholder={ar ? 'الاسم الكامل' : 'Full name'}
+              dir="rtl"
+              value={formState.name}
+              onChange={e => setFormState({ ...formState, name: e.target.value })}
+            />
+            <input
+              name="phone"
+              type="tel"
+              required
+              pattern="[+0-9 ]{8,25}"
+              autoComplete="tel"
+              placeholder={ar ? 'رقم الهاتف (0600000000)' : 'Phone number'}
+              dir="rtl"
+              value={formState.phone}
+              onChange={e => setFormState({ ...formState, phone: e.target.value })}
+            />
+            <input
+              name="city"
+              required
+              minLength={2}
+              maxLength={100}
+              autoComplete="address-level2"
+              placeholder={ar ? 'المدينة' : 'City'}
+              dir="rtl"
+              value={formState.city}
+              onChange={e => setFormState({ ...formState, city: e.target.value })}
+            />
+            <textarea
+              name="address"
+              rows={2}
+              required
+              minLength={3}
+              maxLength={500}
+              autoComplete="street-address"
+              placeholder={ar ? 'العنوان الكامل (الحي / الشارع / رقم المنزل)' : 'Full address'}
+              dir="rtl"
+              value={formState.address}
+              onChange={e => setFormState({ ...formState, address: e.target.value })}
+            />
 
             <div className="qty-row-centered">
               <span className="qty-row-label">{ar ? 'الكمية المطلوبة:' : 'Quantity:'}</span>
