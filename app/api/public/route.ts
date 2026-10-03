@@ -143,6 +143,8 @@ export async function POST(r:Request){
       }).parse(x);
 
       const total = productPrice * o.quantity + productShipping;
+      const ref = o.id.slice(0, 8).toUpperCase();
+
       try {
         const existing = await db().prepare('SELECT id FROM orders WHERE id=?').bind(o.id).first();
         if (!existing) {
@@ -152,7 +154,39 @@ export async function POST(r:Request){
         }
       } catch {}
 
-      return Response.json({ ok: true, reference: o.id.slice(0, 8).toUpperCase() });
+      let b: any = {};
+      try { b = await brand(); } catch {}
+
+      let adminPhone = String(b?.phone || process.env.ADMIN_WHATSAPP_PHONE || '0648344089').replace(/[^0-9]/g, '');
+      if (adminPhone.startsWith('0')) {
+        adminPhone = '212' + adminPhone.slice(1);
+      }
+
+      const msgText = `🚨 *طلب جديد في متجر ${b?.name || 'layane-shop'}!*
+----------------------------------
+👤 *الزبون:* ${o.name}
+📞 *الهاتف:* ${o.phone}
+📍 *المدينة:* ${o.city}
+🏠 *العنوان:* ${o.address}
+📦 *المنتج:* ${productName}
+🔢 *الكمية:* ${o.quantity}
+💰 *المجموع:* ${total} DH
+🆔 *مرجع الطلب:* #${ref}`;
+
+      const whatsappUrl = `https://wa.me/${adminPhone}?text=${encodeURIComponent(msgText)}`;
+
+      const callmebotApiKey = process.env.CALLMEBOT_API_KEY;
+      if (callmebotApiKey && adminPhone) {
+        fetch(`https://api.callmebot.com/whatsapp.php?phone=+${adminPhone}&text=${encodeURIComponent(msgText)}&apikey=${callmebotApiKey}`)
+          .catch(() => {});
+      }
+
+      return Response.json({
+        ok: true,
+        reference: ref,
+        whatsappUrl,
+        messageText: msgText
+      });
     }
 
     throw new Error('Invalid operation');

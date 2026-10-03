@@ -27,7 +27,7 @@ export function Logo({brand}:{brand:any}){
 
 export function ProductView({page:p,brand:b,preview}:any){
   const [quantity,setQuantity]=useState(1);
-  const [done,setDone]=useState('');
+  const [done,setDone]=useState<any>('');
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState('');
   const [activePolicy,setActivePolicy]=useState<{title:string,content:React.ReactNode}|null>(null);
@@ -130,7 +130,7 @@ export function ProductView({page:p,brand:b,preview}:any){
       });
       const data:any=await res.json();
       if(!res.ok)throw new Error(data.error);
-      setDone(data.reference)
+      setDone({ ref: data.reference, whatsappUrl: data.whatsappUrl });
     }catch(e:any){
       setError(e.message)
     }finally{
@@ -142,14 +142,49 @@ export function ProductView({page:p,brand:b,preview}:any){
   const remainingImages = p.images && p.images.length > 1 ? p.images.slice(1) : [];
 
   function OrderForm({ sectionId = 'order' }: { sectionId?: string }) {
+    const refCode = typeof done === 'object' ? (done as any).ref : done;
+    const whatsappUrl = typeof done === 'object' ? (done as any).whatsappUrl : '';
+
     return (
       <section id={sectionId} className="ordersection" style={{ margin: '20px auto' }}>
         {done ? (
-          <div className="successbox">
-            <Check size={35}/>
-            <h2>{ar ? 'تم استلام طلبك بنجاح!' : 'Your order is received!'}</h2>
-            <p>{ar ? 'رقم الطلب' : 'Order reference'}: <strong>{done}</strong></p>
-            <p>{ar ? 'سنتواصل معك هاتفياً لتأكيد التفاصيل والتوصيل.' : 'We will contact you shortly.'}</p>
+          <div className="successbox" style={{ textAlign: 'center', padding: '35px 20px' }}>
+            <Check size={40} style={{ color: '#205b44', margin: '0 auto 12px auto' }} />
+            <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#205b44', margin: '0 0 10px 0' }}>
+              {ar ? 'تم استلام طلبك بنجاح!' : 'Your order is received!'}
+            </h2>
+            <p style={{ fontSize: '15px', color: '#444', marginBottom: '6px' }}>
+              {ar ? 'الرقم المرجعي للطلب' : 'Order reference'}: <strong style={{ color: '#205b44' }}>#{refCode}</strong>
+            </p>
+            <p style={{ fontSize: '14px', color: '#666', marginBottom: '20px' }}>
+              {ar ? 'سنتواصل معك هاتفياً لتأكيد التفاصيل والتوصيل.' : 'We will contact you shortly.'}
+            </p>
+
+            {whatsappUrl && (
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="storebutton"
+                style={{
+                  background: '#25D366',
+                  color: '#fff',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  textDecoration: 'none',
+                  padding: '12px 24px',
+                  fontSize: '15px',
+                  fontWeight: '800',
+                  borderRadius: '30px',
+                  boxShadow: '0 6px 20px rgba(37,211,102,0.35)',
+                  margin: '10px auto 0 auto'
+                }}
+              >
+                <MessageCircle size={18} />
+                {ar ? 'إرسال تفاصيل الطلب عبر الواتساب (WhatsApp)' : 'Send Order Alert on WhatsApp'}
+              </a>
+            )}
           </div>
         ) : (
           <form onSubmit={order}>
