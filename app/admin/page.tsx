@@ -1,19 +1,6 @@
-'use client';
-import dynamic from 'next/dynamic';
+import Studio from '../studio';
 
-const Studio = dynamic(() => import('../studio'), {
-  ssr: false,
-  loading: () => (
-    <div className="login-backdrop">
-      <div style={{ color: '#205b44', fontWeight: '800', fontSize: '18px', textAlign: 'center' }}>
-        <div className="spinner-dots" style={{ justifyContent: 'center', marginBottom: '14px' }}>
-          <span /><span /><span />
-        </div>
-        layane-shop Store Studio
-      </div>
-    </div>
-  )
-});
+export const dynamic = 'force-dynamic';
 
 export default function AdminPage() {
   return <Studio />;
