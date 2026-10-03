@@ -7,7 +7,33 @@ import JSZip from 'jszip';
 const money=(n:number)=>new Intl.NumberFormat('en-MA',{maximumFractionDigits:2}).format(n)+' DH';
 const niceDate=(s:string)=>new Date(s).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'Africa/Casablanca'});
 const navs:any[]=[[LayoutDashboard,'Overview'],[PanelsTopLeft,'Landing pages'],[ShoppingBag,'Orders'],[ChartNoAxesCombined,'Analytics'],[Settings,'Brand settings']];
-async function api(body?:any){const r=await fetch('/api/store',body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:undefined);const d:any=await r.json();if(!r.ok)throw new Error(d.error);return d}
+
+async function api(body?:any){
+  let sessionToken = '';
+  if (typeof document !== 'undefined') {
+    const match = document.cookie.match(/admin_session=([^;]+)/);
+    if (match) sessionToken = match[1];
+  }
+
+  const reqHeaders: any = { 'Content-Type': 'application/json' };
+  if (sessionToken) {
+    reqHeaders['Authorization'] = `Bearer ${sessionToken}`;
+    reqHeaders['X-Session'] = sessionToken;
+  }
+
+  const r = await fetch('/api/store', body ? {
+    method: 'POST',
+    headers: reqHeaders,
+    body: JSON.stringify(body)
+  } : {
+    headers: reqHeaders
+  });
+
+  const d: any = await r.json();
+  if (!r.ok) throw new Error(d.error);
+  return d;
+}
+
 function Badge({status}:any){return <span className={'pill '+status}>{status}</span>}
 function compressImage(file:File):Promise<File>{return new Promise((resolve)=>{if(file.size<=1.5*1024*1024||!file.type.startsWith('image/'))return resolve(file);const img=new Image();const url=URL.createObjectURL(file);img.onload=()=>{URL.revokeObjectURL(url);const canvas=document.createElement('canvas');let{width,height}=img;const maxDim=1920;if(width>maxDim||height>maxDim){if(width>height){height=Math.round((height*maxDim)/width);width=maxDim}else{width=Math.round((width*maxDim)/height);height=maxDim}}canvas.width=width;canvas.height=height;const ctx=canvas.getContext('2d');if(!ctx)return resolve(file);ctx.drawImage(img,0,0,width,height);canvas.toBlob((blob)=>{if(!blob)return resolve(file);resolve(new File([blob],file.name.replace(/\.[^.]+$/,'')+'.jpg',{type:'image/jpeg'}))},'image/jpeg',0.82)};img.onerror=()=>resolve(file);img.src=url})}
 function readFileAsDataUrl(file:File):Promise<string>{return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result as string);reader.onerror=reject;reader.readAsDataURL(file)})}
@@ -445,7 +471,10 @@ export default function Studio(){
     }
   },[]);
 
-  useEffect(()=>{reload()},[reload]);
+  useEffect(()=>{
+    reload();
+  },[reload]);
+
   useEffect(()=>{if(toast){const t=setTimeout(()=>setToast(''),4500);return()=>clearTimeout(t)}},[toast]);
   useEffect(()=>{const close=(e:KeyboardEvent)=>{if(e.key==='Escape'){setDetail(null)}};window.addEventListener('keydown',close);return()=>window.removeEventListener('keydown',close)},[]);
 
@@ -471,6 +500,9 @@ export default function Studio(){
       let d: any = {};
       try { d = JSON.parse(resText); } catch { throw new Error(resText || 'خطأ في الاتصال بالخادم'); }
       if (!res.ok) throw new Error(d.error || 'اسم المستخدم أو كلمة المرور غير صحيحة');
+      if (d.session) {
+        document.cookie = `admin_session=${d.session}; path=/; max-age=2592000; SameSite=Lax`;
+      }
       await reload();
     } catch(err:any){
       setLoginErr(err.message);
@@ -486,6 +518,7 @@ export default function Studio(){
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'logout' })
       });
+      document.cookie = 'admin_session=; path=/; max-age=0; SameSite=Lax';
       setData(null);
       setError('AUTH');
     } catch {}
@@ -529,7 +562,7 @@ export default function Studio(){
               required
               autoFocus
               dir="ltr"
-              placeholder="اسم المستخدم"
+              placeholder="ادخل اسم المستخدم"
               autoComplete="username"
             />
           </label>
@@ -661,20 +694,7 @@ export default function Studio(){
           ))}
         </nav>
         <div className="sidebottom">
-          {userPerms.includes('Brand settings')&&<div className="brandnote"><Globe size={21}/><strong>One brand. Every page.</strong><p>Your storefronts, connected.</p><button className="textbutton" onClick={()=>navigate('Brand settings')}>Manage your brand<ArrowUpRight size={14}/></button></div>}
-          <div className="account" style={{justifyContent:'space-between'}}>
-            <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
-              <div className="avatar" style={{background:'#205b44',color:'#fff',fontWeight:'800'}}>{activeUser.name[0].toUpperCase()}</div>
-              <div>
-                <strong style={{display:'block',fontSize:'13px',color:'#1a3328',lineHeight:'1.2'}}>{activeUser.name}</strong>
-                <small style={{color:'#526959',fontSize:'11px'}}>@{activeUser.username}</small>
-              </div>
-            </div>
-            <button type="button" onClick={handleLogout} title="Sign Out" style={{border:0,background:'transparent',cursor:'pointer',color:'#839487'}}>
-              <LogOut size={17}/>
-            </button>
-          </div>
-        </div>
+          {userPerms.includes('Brand settings')&&<div className="brandnote"><Globe size={21}/><strong>One brand. Every page.</strong><p>Your storefronts, connected.</p><button className="textbutton" onClick={()=>navigate('Brand settings')}>Manage your brand<ArrowUpRight size={14}/></button></div>}<div className="account" style={{justifyContent:'space-between'}}><div style={{display:'flex',alignItems:'center',gap:'10px'}}><div className="avatar" style={{background:'#205b44',color:'#fff',fontWeight:'800'}}>{activeUser.name[0].toUpperCase()}</div><div><strong style={{display:'block',fontSize:'13px',color:'#1a3328',lineHeight:'1.2'}}>{activeUser.name}</strong><small style={{color:'#526959',fontSize:'11px'}}>@{activeUser.username}</small></div></div><button type="button" onClick={handleLogout} title="Sign Out" style={{border:0,background:'transparent',cursor:'pointer',color:'#839487'}}><LogOut size={17}/></button></div></div>
       </aside>
       <main>
         <header>

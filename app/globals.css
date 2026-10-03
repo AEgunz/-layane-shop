@@ -189,3 +189,12 @@
   color: #205b44;
   letter-spacing: 0.5px;
 }
+
+.brandlogo-img, .brand img, .brandlogo img {
+  max-height: 40px !important;
+  max-width: 160px !important;
+  height: auto !important;
+  width: auto !important;
+  object-fit: contain !important;
+  display: block !important;
+}

@@ -435,12 +435,12 @@ export async function getCurrentAdminInfo() {
   if (!session) {
     try {
       const reqHeaders = await headers();
-      session = reqHeaders.get('cookie') || '';
+      session = reqHeaders.get('cookie') || reqHeaders.get('authorization') || reqHeaders.get('x-session') || '';
     } catch {}
   }
 
   if (session) {
-    const match = session.match(/admin_session=logged_in:([^:]+)/) || session.match(/^logged_in:([^:]+)/);
+    const match = session.match(/admin_session=logged_in:([^:]+)/) || session.match(/logged_in:([^:]+)/);
     if (match && match[1]) {
       const username = match[1];
       const admins = await getAdmins();
@@ -469,9 +469,9 @@ export async function getSessionPermissions() {
 
   try {
     const reqHeaders = await headers();
-    const cookieHeader = reqHeaders.get('cookie') || '';
-    if (cookieHeader.includes('admin_session=logged_in:')) {
-      const match = cookieHeader.match(/admin_session=logged_in:[^:]+:([^;]+)/);
+    const cookieHeader = reqHeaders.get('cookie') || reqHeaders.get('authorization') || reqHeaders.get('x-session') || '';
+    if (cookieHeader.includes('logged_in:')) {
+      const match = cookieHeader.match(/logged_in:[^:]+:([^;\s]+)/);
       if (match && match[1]) {
         return JSON.parse(decodeURIComponent(match[1]));
       }
@@ -497,8 +497,8 @@ export async function admin(){
 
   try {
     const reqHeaders = await headers();
-    const cookieHeader = reqHeaders.get('cookie') || '';
-    if (cookieHeader.includes('admin_session=logged_in')) {
+    const cookieHeader = reqHeaders.get('cookie') || reqHeaders.get('authorization') || reqHeaders.get('x-session') || '';
+    if (cookieHeader.includes('admin_session=logged_in') || cookieHeader.includes('logged_in:')) {
       return {
         userId: 'admin-owner',
         displayName: 'Store Administrator',

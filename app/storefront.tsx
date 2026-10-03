@@ -1,60 +1,48 @@
 'use client';
-import {useEffect,useState} from 'react';
-import {Leaf,ShieldCheck,Truck,Check,ShoppingBag,X,Package,RefreshCw,MessageCircle} from 'lucide-react';
+import {useState,useEffect} from 'react';
+import {ShoppingBag,Truck,ShieldCheck,Check,Globe,Package,RefreshCw,MessageCircle,Leaf,ChevronRight,X} from 'lucide-react';
 
-export function Logo({brand}:any){
+export function Logo({brand}:{brand:any}){
   return (
-    <span className="brand">
+    <div className="brandlogo" style={{ display: 'flex', alignItems: 'center', gap: '10px', maxWidth: '200px', overflow: 'hidden' }}>
       {brand.logo ? (
-        <img src={brand.logo} alt={brand.name||'logo'} className="brand-logo-img" />
+        <img
+          src={brand.logo}
+          alt={brand.name}
+          className="brandlogo-img"
+          style={{ maxHeight: '38px', maxWidth: '150px', objectFit: 'contain', width: 'auto', height: 'auto', display: 'block' }}
+        />
       ) : (
-        <>
-          <span className="mark"><Leaf size={24}/></span>
-          <span>{brand.name}<small>{brand.tagline}</small></span>
-        </>
+        <span className="logoicon"><Leaf size={22}/></span>
       )}
-    </span>
+      {!brand.logo && (
+        <div>
+          <strong>{brand.name}</strong>
+          <small>{brand.tagline}</small>
+        </div>
+      )}
+    </div>
   );
 }
 
-export function ProductView({page:p,brand:b,preview=false}:any){
-  const ar=p.language==='ar';
-  const fr=p.language==='fr';
-  const [done,setDone]=useState('');
-  const [error,setError]=useState('');
-  const [busy,setBusy]=useState(false);
+export function ProductView({page:p,brand:b,preview}:any){
   const [quantity,setQuantity]=useState(1);
-  const [id,setId]=useState('');
-  const [showSticky,setShowSticky]=useState(true);
-  const [activePolicy,setActivePolicy]=useState<any>(null);
-
-  useEffect(()=>setId(crypto.randomUUID()),[]);
-
-  useEffect(() => {
-    function handleScroll() {
-      const target = document.getElementById('order');
-      if (!target) return;
-      const rect = target.getBoundingClientRect();
-      if (rect.top <= window.innerHeight) {
-        setShowSticky(false);
-      } else {
-        setShowSticky(true);
-      }
-    }
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll();
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  const [done,setDone]=useState('');
+  const [busy,setBusy]=useState(false);
+  const [error,setError]=useState('');
+  const [activePolicy,setActivePolicy]=useState<{title:string,content:React.ReactNode}|null>(null);
+  const ar=p.language!=='en'&&p.language!=='fr';
+  const fr=p.language==='fr';
+  const id=crypto.randomUUID();
 
   function openPolicy(key:string){
-    const policies:Record<string,{title:string;content:React.ReactNode}>={
+    const policies:Record<string,{title:string,content:React.ReactNode}> = {
       about:{
         title:'عن المتجر',
         content:(
           <div>
-            <p>أهلاً بكم في متجرنا! نحن متجر مغربي متخصص في توفير أجود المنتجات عالية الجودة والمختارة بعناية فائقة لعملائنا في كافة مدن المغرب.</p>
-            <p>هدفنا الأول هو تقديم تجربة تسوق سهلة، مريحة وآمنة. نوفر لكم خدمة الدفع عند الاستلام والتوصيل السريع مباشرة إلى باب منزلك مع ضمان الجودة والرضا التام.</p>
+            <p>مرحباً بكم في متجرنا الرسمي! نحن متجر مغربي متألق نهدف لتقديم أجود المنتجات المختارة بعناية فائقة لتلبية تطلعات زبنائنا الكرام في كافة المدن المغربية.</p>
+            <p>نلتزم بأعلى معايير الجودة، السرعة، والشفافية مع تقديم خدمة توصيل سريعة والدفع عند الاستلام مع إمكانية المعاينة قبل الدفع.</p>
           </div>
         )
       },
@@ -62,8 +50,10 @@ export function ProductView({page:p,brand:b,preview=false}:any){
         title:'طرق الدفع',
         content:(
           <div>
-            <p>طريقة الدفع المعتمدة في متجرنا هي <strong>الدفع عند الاستلام (Cash on Delivery)</strong>.</p>
-            <p>لا تتطلب عملية الشراء أي دفع مسبق أو بطاقة بنكية. تقوم بطلب المنتج عبر ملء استمارة التوصيل، وسيقوم الموزع بإيصال الطلب حتى باب منزلك، حيث يمكنك معاينة طلبك ودفع المبلغ نقداً للموزع.</p>
+            <p>نوفر لكم أسهل وأأمن طريقة تسوق في المغرب:</p>
+            <ul>
+              <li><strong>الدفع عند الاستلام (Cash on Delivery):</strong> لا تدفع أي درهم حتى يصلك المنتج إلى باب منزلك أو مقر عملك وتعاينه بنفسك!</li>
+            </ul>
           </div>
         )
       },
@@ -71,34 +61,10 @@ export function ProductView({page:p,brand:b,preview=false}:any){
         title:'الشحن والتسليم',
         content:(
           <div>
-            <p>نوفر خدمة التوصيل لكافة المدن والمناطق بالمملكة المغربية.</p>
-            <ul>
-              <li><strong>مدة التوصيل:</strong> بين 24 إلى 48 ساعة عمل.</li>
-              <li><strong>التأكيد:</strong> يتصل بكم فريقنا هاتفياً قبل إرسال الموزع لتأكيد وقت ومكان التسليم المناسب لكم.</li>
-              <li><strong>المعاينة:</strong> يحق للزبون التأكد من سلامة الشحنة عند التسليم.</li>
-            </ul>
-          </div>
-        )
-      },
-      contact:{
-        title:'اتصل بنا',
-        content:(
-          <div>
-            <p>فريق خدمة العملاء جاهز للرد على جميع أسئلتكم واستفساراتكم وتتبع طلباتكم طيلة أيام الأسبوع.</p>
-            {b.phone&&<p><strong>الهاتف / الواتساب:</strong> <a href={'tel:'+b.phone} dir="ltr">{b.phone}</a></p>}
-            <p><strong>ساعات العمل:</strong> من الإثنين إلى السبت (من 9:00 صباحاً حتى 8:00 مساءً).</p>
-          </div>
-        )
-      },
-      faq:{
-        title:'الأسئلة المتكررة',
-        content:(
-          <div>
-            <h4>1. كيف يمكنني إتمام الطلب؟</h4>
-            <p>يكفي كتابة اسمك، رقم هاتفك والمدينة في الاستمارة أعلاه والضغط على زر "اطلب الآن".</p>
-            <h4>2. متى سأستلم طلبي؟</h4>
+            <p>نغطي جميع المدن والمناطق المغربية عبر شبكة موزعين محترفين:</p>
+            <h4>1. كم يستغرق التوصيل؟</h4>
             <p>يصلك الطلب خلال 24 إلى 48 ساعة كحد أقصى مع الاتصال بك قبل التوصيل.</p>
-            <h4>3. هل يمكنني معاينة المنتج قبل الدفع؟</h4>
+            <h4>2. هل يمكنني معاينة المنتج قبل الدفع؟</h4>
             <p>نعم بالتأكيد! يمكنك فحص المنتج ومعاينته عند وصول الموزع قبل تسليم المبلغ.</p>
           </div>
         )
@@ -172,32 +138,61 @@ export function ProductView({page:p,brand:b,preview=false}:any){
     }
   }
 
+  const firstImage = p.images && p.images.length > 0 ? p.images[0] : p.image;
+  const remainingImages = p.images && p.images.length > 1 ? p.images.slice(1) : [];
+
+  function OrderForm({ sectionId = 'order' }: { sectionId?: string }) {
+    return (
+      <section id={sectionId} className="ordersection" style={{ margin: '20px auto' }}>
+        {done ? (
+          <div className="successbox">
+            <Check size={35}/>
+            <h2>{ar ? 'تم استلام طلبك بنجاح!' : 'Your order is received!'}</h2>
+            <p>{ar ? 'رقم الطلب' : 'Order reference'}: <strong>{done}</strong></p>
+            <p>{ar ? 'سنتواصل معك هاتفياً لتأكيد التفاصيل والتوصيل.' : 'We will contact you shortly.'}</p>
+          </div>
+        ) : (
+          <form onSubmit={order}>
+            <h3>{ar ? 'معلومات التوصيل' : fr ? 'Détails de livraison' : 'Delivery details'}</h3>
+            <input name="name" required minLength={2} maxLength={120} autoComplete="name" placeholder={ar ? 'الاسم الكامل' : 'Full name'} dir="rtl"/>
+            <input name="phone" type="tel" required pattern="[+0-9 ]{8,25}" autoComplete="tel" placeholder={ar ? 'رقم الهاتف (0600000000)' : 'Phone number'} dir="rtl"/>
+            <input name="city" required minLength={2} maxLength={100} autoComplete="address-level2" placeholder={ar ? 'المدينة' : 'City'} dir="rtl"/>
+            <textarea name="address" rows={2} required minLength={3} maxLength={500} autoComplete="street-address" placeholder={ar ? 'العنوان الكامل (الحي / الشارع / رقم المنزل)' : 'Full address'} dir="rtl"/>
+
+            <div className="qty-row-centered">
+              <span className="qty-row-label">{ar ? 'الكمية المطلوبة:' : 'Quantity:'}</span>
+              <div className="qty-counter-pills" dir="ltr">
+                <button type="button" onClick={() => setQuantity(Math.max(1, quantity - 1))}>-</button>
+                <span className="qty-num">{quantity}</span>
+                <button type="button" onClick={() => setQuantity(Math.min(10, quantity + 1))}>+</button>
+              </div>
+            </div>
+
+            <input className="honeypot" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true"/>
+            {error && <p className="error" role="alert">{error}</p>}
+            <button className="storebutton" disabled={busy}>
+              {busy ? (ar ? 'جار الإرسال…' : 'Submitting…') : <>{p.cta || 'اطلب الآن'} - <span dir="ltr">{p.price * quantity + p.shipping} DH</span></>}
+            </button>
+            <small>{ar ? 'الدفع عند الاستلام والتوصيل إلى باب منزلك' : 'Cash on delivery • Delivery to your doorstep'}</small>
+          </form>
+        )}
+      </section>
+    );
+  }
+
   return (
     <div className={'storefront '+p.template} dir={ar?'rtl':'ltr'} style={{'--brand':b.color} as any}>
       <div className="storetop">{ar?'الدفع عند الاستلام • توصيل إلى جميع أنحاء المغرب':fr?'Paiement à la livraison • Livraison au Maroc':'Cash on delivery • Delivery across Morocco'}</div>
 
+      {/* 1. FIRST LANDING PAGE BANNER IMAGE */}
       {p.customHtml ? (
         <section className="custom-html-section">
           <div dangerouslySetInnerHTML={{ __html: p.customHtml }} />
         </section>
-      ) : p.images && p.images.length > 0 ? (
-        <section className="seamless-images-section">
-          <div className="seamless-images-wrap">
-            {p.images.map((imgUrl: string, idx: number) => (
-              <img key={idx} src={imgUrl} alt={p.name} className="seamless-img" />
-            ))}
-            <div className="banner-cta-bar">
-              <div className="banner-cta-text">
-                <h4>{ar?'أكمل معلوماتك وسنتصل بك لتأكيد الطلب':fr?'Complétez vos détails et nous vous contacterons':'Fill in your details and we will call you to confirm your order'}</h4>
-                <div className="storeprice"><span dir="ltr">{p.price} DH</span> {p.comparePrice>p.price&&<del><span dir="ltr">{p.comparePrice} DH</span></del>}</div>
-              </div>
-            </div>
-          </div>
-        </section>
-      ) : p.image ? (
+      ) : firstImage ? (
         <section className="landing-banner-section">
           <div className="landing-banner-wrap">
-            <img src={p.image} alt={p.name} className="landing-banner-img"/>
+            <img src={firstImage} alt={p.name} className="landing-banner-img"/>
             <div className="banner-cta-bar">
               <div className="banner-cta-text">
                 <h4>{ar?'أكمل معلوماتك وسنتصل بك لتأكيد الطلب':fr?'Complétez vos détails et nous vous contacterons':'Fill in your details and we will call you to confirm your order'}</h4>
@@ -221,48 +216,62 @@ export function ProductView({page:p,brand:b,preview=false}:any){
         </section>
       )}
 
+      {/* 2. FIRST COD ORDER FORM: معلومات التوصيل 1 */}
+      <OrderForm sectionId="order" />
+
+      {/* 3. LANDING PAGE IMAGES 2, 3, 4, 5 */}
+      {remainingImages.length > 0 && (
+        <section className="seamless-images-section">
+          <div className="seamless-images-wrap">
+            {remainingImages.map((imgUrl: string, idx: number) => (
+              <img key={idx} src={imgUrl} alt={`${p.name} ${idx + 2}`} className="seamless-img" />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* 4. SECOND COD ORDER FORM: معلومات التوصيل 2 */}
+      <OrderForm sectionId="order2" />
+
+      {/* 5. CUSTOMER REVIEWS: أراء زبنائنا */}
+      <section className="reviews-section" style={{ padding: '20px 15px', maxWidth: '650px', margin: '20px auto' }}>
+        <div className="reviews-title" style={{ textAlign: 'center', marginBottom: '16px' }}>
+          <span style={{ fontSize: '22px' }}>⭐⭐⭐⭐⭐</span>
+          <h3 style={{ fontSize: '19px', fontWeight: '800', color: '#205b44', marginTop: '6px' }}>
+            {ar ? 'أراء وتقييمات زبنائنا الكرام' : 'Customer Reviews'}
+          </h3>
+        </div>
+        {p.reviewsImage ? (
+          <div className="reviews-image-box">
+            <img src={p.reviewsImage} alt={ar ? 'آراء الزبناء' : 'Customer Reviews'} className="reviews-img" style={{ width: '100%', borderRadius: '12px', border: '1px solid #e1e9df' }} />
+          </div>
+        ) : (
+          <div className="reviews-grid" style={{ display: 'grid', gap: '12px' }}>
+            <div className="review-card" style={{ background: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e1e9df', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <strong style={{ color: '#205b44' }}>أيوب - الدار البيضاء</strong>
+                <span>⭐⭐⭐⭐⭐</span>
+              </div>
+              <p style={{ fontSize: '13px', color: '#444', margin: 0, lineHeight: '1.5' }}>"منتج ممتاز جداً والتوصيل كان سريعاً في أقل من 24 ساعة. شكراً جزيلاً!"</p>
+            </div>
+            <div className="review-card" style={{ background: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e1e9df', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <strong style={{ color: '#205b44' }}>فاطمة الزهراء - الرباط</strong>
+                <span>⭐⭐⭐⭐⭐</span>
+              </div>
+              <p style={{ fontSize: '13px', color: '#444', margin: 0, lineHeight: '1.5' }}>"الجودة ممتازة والمعاينة قبل الدفع أعطتني ثقة كبيرة. سأكرر الشراء بكل تأكيد."</p>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* FAQ Section */}
       {p.faq && p.faq.length > 0 && (
         <section className="storefaq">
           <h2>{ar?'أسئلة شائعة':fr?'Questions fréquentes':'A few things you might ask'}</h2>
           {p.faq.map((f:any,i:number)=><details key={i}><summary>{f.q}</summary><p>{f.a}</p></details>)}
         </section>
       )}
-
-      <section id="order" className="ordersection">
-        {done?<div className="successbox"><Check size={35}/><h2>{ar?'تم استلام طلبك!':'Your order is received!'}</h2><p>{ar?'رقم الطلب':'Order reference'}: {done}</p><p>{ar?'سنتواصل معك لتأكيد التفاصيل.':'We’ll contact you to confirm the details.'}</p></div>:<form onSubmit={order}>
-          <h3>{ar?'معلومات التوصيل':fr?'Détails de livraison':'Delivery details'}</h3>
-          <input name="name" required minLength={2} maxLength={120} autoComplete="name" placeholder={ar?'الاسم الكامل':'Full name'} dir="rtl"/>
-          <input name="phone" type="tel" required pattern="[+0-9 ]{8,25}" autoComplete="tel" placeholder={ar?'رقم الهاتف (0600000000)':'Phone number'} dir="rtl"/>
-          <input name="city" required minLength={2} maxLength={100} autoComplete="address-level2" placeholder={ar?'المدينة':'City'} dir="rtl"/>
-          <textarea name="address" rows={2} required minLength={3} maxLength={500} autoComplete="street-address" placeholder={ar?'العنوان الكامل (الحي / الشارع / رقم المنزل)':'Full address'} dir="rtl"/>
-
-          <div className="qty-row-centered">
-            <span className="qty-row-label">{ar?'الكمية المطلوبة:':'Quantity:'}</span>
-            <div className="qty-counter-pills" dir="ltr">
-              <button type="button" onClick={()=>setQuantity(Math.max(1,quantity-1))}>-</button>
-              <span className="qty-num">{quantity}</span>
-              <button type="button" onClick={()=>setQuantity(Math.min(10,quantity+1))}>+</button>
-            </div>
-          </div>
-
-          <input className="honeypot" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true"/>
-          {error&&<p className="error" role="alert">{error}</p>}
-          <button className="storebutton" disabled={busy}>
-            {busy?(ar?'جار الإرسال…':'Submitting…'):<>{p.cta||'اطلب الآن'} - <span dir="ltr">{p.price*quantity+p.shipping} DH</span></>}
-          </button>
-          <small>{ar?'الدفع عند الاستلام والتوصيل إلى باب منزلك':'Cash on delivery • Delivery to your doorstep'}</small>
-
-          {p.reviewsImage && (
-            <div className="reviews-image-box">
-              <div className="reviews-title">
-                <span>⭐⭐⭐⭐⭐</span>
-                <h4>{ar ? 'آراء وتقييمات زبنائنا الكرام' : 'Customer Reviews'}</h4>
-              </div>
-              <img src={p.reviewsImage} alt={ar ? 'آراء الزبناء' : 'Customer Reviews'} className="reviews-img" />
-            </div>
-          )}
-        </form>}
-      </section>
 
       {/* Trust Guarantees Section */}
       <section className="store-guarantees-section">
@@ -319,63 +328,45 @@ export function ProductView({page:p,brand:b,preview=false}:any){
           <div className="footer-col">
             <h4>اتصل بنا</h4>
             <div className="col-divider"/>
-            <button type="button" onClick={()=>openPolicy('contact')}>اتصل بنا</button>
-            <button type="button" onClick={()=>openPolicy('faq')}>الأسئلة المتكررة</button>
+            {b.phone&&<p>الهاتف / الواتساب: <span dir="ltr">{b.phone}</span></p>}
+            <p>ساعات العمل: من الإثنين إلى السبت (9 صباحاً - 8 مساءً)</p>
           </div>
 
           <div className="footer-col">
-            <h4>الشروط والسياسات</h4>
+            <h4>الخصوصية والشروط</h4>
             <div className="col-divider"/>
             <button type="button" onClick={()=>openPolicy('terms')}>شروط الاستخدام</button>
-            <button type="button" onClick={()=>openPolicy('return')}>سياسة الاستبدال والاسترجاع</button>
             <button type="button" onClick={()=>openPolicy('privacy')}>سياسة الخصوصية</button>
+            <button type="button" onClick={()=>openPolicy('return')}>سياسة الاستبدال والاسترجاع</button>
             <button type="button" onClick={()=>openPolicy('cgv')}>شروط وأحكام البيع (CGV)</button>
           </div>
         </div>
 
-        <div className="footer-bottom-copy" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-          <Logo brand={b}/>
-          <span>© {new Date().getFullYear()} {b.name}. جميع الحقوق محفوظة.</span>
-          <span className="developer-signature" style={{ fontSize: '12px', color: '#9bbba9', marginTop: '4px' }}>
+        <div className="footer-bottom">
+          <span>{b.name} © {new Date().getFullYear()} — جميع الحقوق محفوظة</span>
+          <span className="dev-signature">
             Designed & Developed by{' '}
-            <a
-              href="https://www.linkedin.com/in/ayoub-eddarif-b92189b3/"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: '#ffffff', fontWeight: '700', textDecoration: 'underline' }}
-            >
+            <a href="https://www.linkedin.com/in/ayoub-eddarif-b92189b3/" target="_blank" rel="noopener noreferrer">
               Ayoub Eddarif
             </a>
           </span>
         </div>
       </footer>
 
-      {/* Interactive Policy Popup Modal */}
+      {/* Policy Modal Popup */}
       {activePolicy && (
         <div className="policy-modal-backdrop" onClick={()=>setActivePolicy(null)}>
-          <div className="policy-modal-box" onClick={e=>e.stopPropagation()}>
-            <div className="policy-modal-head">
+          <div className="policy-modal-content" onClick={e=>e.stopPropagation()} dir="rtl">
+            <div className="policy-modal-header">
               <h3>{activePolicy.title}</h3>
-              <button type="button" className="policy-close-btn" onClick={()=>setActivePolicy(null)}><X size={20}/></button>
+              <button type="button" onClick={()=>setActivePolicy(null)} aria-label="Close"><X size={20}/></button>
             </div>
             <div className="policy-modal-body">
               {activePolicy.content}
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Sticky Floating Bottom Order Bar */}
-      {showSticky && (
-        <div className="sticky-bottom-bar">
-          <div className="sticky-bar-inner">
-            <div className="sticky-price-info">
-              <span className="sticky-product-name">{p.name}</span>
-              <span className="sticky-price" dir="ltr">{p.price*quantity} DH</span>
+            <div className="policy-modal-footer">
+              <button type="button" className="storebutton" onClick={()=>setActivePolicy(null)}>حسناً، فهمت</button>
             </div>
-            <a href="#order" className="storebutton sticky-btn">
-              {p.cta||'اطلب الآن'} - <span dir="ltr">{p.price*quantity} DH</span>
-            </a>
           </div>
         </div>
       )}
@@ -383,50 +374,28 @@ export function ProductView({page:p,brand:b,preview=false}:any){
   );
 }
 
-export default function Storefront({slug}:{slug:string}){
-  const [data,setData]=useState<any>(null);
-  const [error,setError]=useState('');
+export default function Storefront({slug, page, brand}:any){
+  const [data,setData]=useState<any>(page && brand ? {page, brand} : null);
 
   useEffect(()=>{
-    fetch('/api/public?slug='+encodeURIComponent(slug))
-      .then(async r=>{
-        const d:any=await r.json();
-        if(!r.ok)throw new Error(d.error);
-        setData(d);
-        document.title=d.page.name+' | '+d.brand.name;
-        let token=sessionStorage.getItem('store-visit');
-        if(!token){
-          token=crypto.randomUUID();
-          sessionStorage.setItem('store-visit',token);
-        }
-        fetch('/api/public',{
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({action:'visit',slug,token})
-        }).catch(()=>{});
-      })
-      .catch(e=>setError(e.message));
-  },[slug]);
+    if (!page || !brand) {
+      fetch(`/api/public${slug?`?slug=${encodeURIComponent(slug)}`:''}`)
+        .then(r=>r.json())
+        .then(setData)
+        .catch(()=>{});
+    }
+  },[slug, page, brand]);
 
-  if(error) return (
-    <div className="loading-screen">
-      <ShoppingBag size={50} style={{ color: '#d32f2f' }} />
-      <h1 style={{ fontSize: '20px', color: '#1e3226' }}>الصفحة غير متاحة</h1>
-      <p style={{ fontSize: '14px', color: '#617567' }}>{error}</p>
-    </div>
-  );
-
-  if(!data) return (
-    <div className="loading-screen">
-      <div className="loading-logo-box">
-        <img src="/logo.png" alt="layane-shop" className="pulse-logo" />
+  if(!data) {
+    return (
+      <div style={{display:'flex',justifyContent:'center',alignItems:'center',minHeight:'100vh',background:'#f5f7f4'}}>
+        <div style={{textAlign:'center'}}>
+          <Leaf size={40} style={{color:'#205b44',margin:'0 auto 10px auto'}}/>
+          <p style={{fontWeight:'700',color:'#205b44'}}>جار التحميل…</p>
+        </div>
       </div>
-      <div className="spinner-dots">
-        <span /><span /><span />
-      </div>
-      <span className="loading-text">جار التحميل…</span>
-    </div>
-  );
+    );
+  }
 
   return <ProductView page={data.page} brand={data.brand}/>;
 }
