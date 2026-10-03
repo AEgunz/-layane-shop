@@ -8,8 +8,8 @@ export async function GET(r:Request){
     id: 'default-product',
     name: 'layane-shop Store',
     slug: 'home',
-    price: 199,
-    comparePrice: 299,
+    price: 249,
+    comparePrice: 345,
     shipping: 0,
     status: 'published',
     template: 'editorial',
@@ -26,17 +26,18 @@ export async function GET(r:Request){
     let row: any = null;
     try {
       if (slug && slug !== 'default' && slug !== 'home') {
-        row = await db().prepare("SELECT data FROM pages WHERE slug=? AND status='published'").bind(slug).first<{data:string}>();
+        row = await db().prepare("SELECT data FROM pages WHERE slug=?").bind(slug).first<{data:string}>();
       }
       if (!row) {
-        row = await db().prepare("SELECT data FROM pages WHERE status='published' ORDER BY rowid ASC").first<{data:string}>();
+        row = await db().prepare("SELECT data FROM pages ORDER BY rowid DESC").first<{data:string}>();
       }
     } catch {}
 
     if (!row || !row.data) {
       return Response.json({ page: defaultPage, brand: await brand() }, { headers: { 'Cache-Control': 'no-store' } });
     }
-    return Response.json({page:JSON.parse(row.data),brand:await brand()},{headers:{'Cache-Control':'no-store'}});
+    const parsedPage = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
+    return Response.json({page: parsedPage, brand: await brand()},{headers:{'Cache-Control':'no-store'}});
   }catch(e){
     return Response.json({ page: defaultPage, brand: { name: 'layane-shop', logo: '/logo.png', color: '#205b44' } }, { headers: { 'Cache-Control': 'no-store' } });
   }
@@ -85,21 +86,26 @@ export async function POST(r:Request){
       let row = null;
       try {
         if (slug && slug !== 'default' && slug !== 'home') {
-          row = await db().prepare("SELECT id FROM pages WHERE slug=? AND status='published'").bind(slug).first<{id:string}>();
+          row = await db().prepare("SELECT id FROM pages WHERE slug=?").bind(slug).first<{id:string}>();
         }
         if (!row) {
-          row = await db().prepare("SELECT id FROM pages WHERE status='published' ORDER BY rowid ASC").first<{id:string}>();
+          row = await db().prepare("SELECT id FROM pages ORDER BY rowid DESC").first<{id:string}>();
         }
       } catch {}
 
       const pageId = row?.id || 'default-product';
+      const token = String(x.token || '').trim().slice(0, 60) || crypto.randomUUID();
+      const day = new Date().toISOString().slice(0, 10);
 
-      const user=await getChatGPTUser();
-      const owner=await db().prepare("SELECT value FROM settings WHERE key='owner'").first<{value:string}>();
-      if(user?.userId!==owner?.value){
-        const token=String(x.token || '').trim().slice(0, 60) || crypto.randomUUID();
+      try {
+        await db().prepare('INSERT INTO visits(page_id,token,day,count) VALUES(?,?,?,1) ON CONFLICT(page_id,token,day) DO UPDATE SET count=visits.count+1')
+          .bind(pageId, token, day)
+          .run();
+      } catch {
         try {
-          await db().prepare('INSERT OR IGNORE INTO visits(page_id,token,day) VALUES(?,?,?)').bind(pageId,token,new Date().toISOString().slice(0,10)).run();
+          await db().prepare('INSERT OR IGNORE INTO visits(page_id,token,day) VALUES(?,?,?)')
+            .bind(pageId, token, day)
+            .run();
         } catch {}
       }
       return Response.json({ok:true});
@@ -110,24 +116,24 @@ export async function POST(r:Request){
       let row = null;
       try {
         if (slug && slug !== 'default' && slug !== 'home') {
-          row = await db().prepare("SELECT id,data FROM pages WHERE slug=? AND status='published'").bind(slug).first<{id:string,data:string}>();
+          row = await db().prepare("SELECT id,data FROM pages WHERE slug=?").bind(slug).first<{id:string,data:string}>();
         }
         if (!row) {
-          row = await db().prepare("SELECT id,data FROM pages WHERE status='published' ORDER BY rowid ASC").first<{id:string,data:string}>();
+          row = await db().prepare("SELECT id,data FROM pages ORDER BY rowid DESC").first<{id:string,data:string}>();
         }
       } catch {}
 
       let pageId = row?.id || 'default-product';
       let productName = 'layane-shop Product';
-      let productPrice = 199;
+      let productPrice = 249;
       let productShipping = 0;
 
       if (row && row.data) {
         try {
-          const p = JSON.parse(row.data);
-          productName = p.name || productName;
-          productPrice = p.price || productPrice;
-          productShipping = p.shipping ?? productShipping;
+          const p = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
+          if (p.name) productName = p.name;
+          if (typeof p.price === 'number' && p.price > 0) productPrice = p.price;
+          if (typeof p.shipping === 'number') productShipping = p.shipping;
         } catch {}
       }
 
