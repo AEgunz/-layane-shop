@@ -1,17 +1,48 @@
 import webpush, {type PushSubscription} from 'web-push';
 import {createHash} from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
 import {putPushSetting, deletePushSetting, listPushSubscriptions, orderWasSaved, newOrderCount} from './push-storage';
 
 const prefix = 'push-subscription:';
+let autoKeys: {publicKey: string; privateKey: string; subject: string} | null = null;
 
 export function pushConfig() {
   const publicKey = process.env.VAPID_PUBLIC_KEY;
   const privateKey = process.env.VAPID_PRIVATE_KEY;
-  const subject = process.env.VAPID_SUBJECT;
-  if (!publicKey || !privateKey || !subject) {
-    throw new Error('إشعارات الخلفية غير مهيأة على السيرفر. خاص إعداد VAPID_PUBLIC_KEY و VAPID_PRIVATE_KEY و VAPID_SUBJECT.');
+  const subject = process.env.VAPID_SUBJECT || 'mailto:admin@layane-shop.com';
+
+  if (publicKey && privateKey) {
+    return {publicKey, privateKey, subject};
   }
-  return {publicKey, privateKey, subject};
+
+  if (autoKeys) return autoKeys;
+
+  try {
+    const dataDir = path.join(process.cwd(), '.data');
+    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, {recursive: true});
+    const keyFile = path.join(dataDir, 'vapid.json');
+    if (fs.existsSync(keyFile)) {
+      autoKeys = JSON.parse(fs.readFileSync(keyFile, 'utf8'));
+      if (autoKeys?.publicKey && autoKeys?.privateKey) return autoKeys;
+    }
+    const generated = webpush.generateVAPIDKeys();
+    autoKeys = {
+      publicKey: generated.publicKey,
+      privateKey: generated.privateKey,
+      subject
+    };
+    fs.writeFileSync(keyFile, JSON.stringify(autoKeys, null, 2));
+    return autoKeys;
+  } catch {
+    const generated = webpush.generateVAPIDKeys();
+    autoKeys = {
+      publicKey: generated.publicKey,
+      privateKey: generated.privateKey,
+      subject
+    };
+    return autoKeys;
+  }
 }
 
 // Only accept browser push services; never fetch arbitrary subscription URLs.
@@ -41,9 +72,8 @@ export async function removeSubscription(endpoint: string) {
 
 export async function sendPush(subscription: PushSubscription, payload: {title: string; body: string; tag: string; badgeCount?: number}) {
   if (!validPushEndpoint(subscription.endpoint)) throw new Error('Invalid push service');
-  // Generate standard encrypted Web Push, then use fetch for Node and Workers.
   const request = webpush.generateRequestDetails(subscription, JSON.stringify(payload), {
-    vapidDetails: pushConfig(), TTL: 3600, urgency: 'high',
+    vapidDetails: pushConfig(), TTL: 86400, urgency: 'high',
   });
   const response = await fetch(request.endpoint, {
     method: 'POST', headers: request.headers as Record<string, string>,
@@ -57,18 +87,16 @@ export async function sendPush(subscription: PushSubscription, payload: {title: 
 }
 
 export async function notifyNewOrder(id: string) {
-  // Notifications must never turn an already saved order into a checkout error.
   try {
     if (!await orderWasSaved(id)) return;
     const rows = await listPushSubscriptions();
     if (!rows.length) return;
-    // A failed count must not prevent delivery of the order notification.
     const badgeCount = await newOrderCount().catch(() => undefined);
     await Promise.all(rows.map(async (row: {value: string}) => {
       try {
         await sendPush(JSON.parse(row.value), {
-          title: 'طلب جديد في متجر layane-shop',
-          body: `وصلك طلب جديد #${id.slice(0, 8).toUpperCase()}. افتح التطبيق لمعاينة التفاصيل.`,
+          title: '🚨 طلب جديد في متجر layane-shop!',
+          body: `وصلك طلب جديد #${id.slice(0, 8).toUpperCase()}. اضغط هنا لمعاينة تفاصيل الزبون والطلب.`,
           tag: `order-${id}`,
           badgeCount,
         });
