@@ -85,6 +85,7 @@ export async function POST(r:Request){
         color:z.string().regex(/^#[0-9a-fA-F]{6}$/),
         logo:z.string().max(10000000).refine(safeImage),
         phone:z.string().max(40),
+        pixelId:z.string().max(100).optional().default('1116296790985534'),
         currency:z.literal('MAD')
       }).parse(x.brand);
       await db().prepare("DELETE FROM settings WHERE key=?").bind('brand').run();

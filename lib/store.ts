@@ -4,7 +4,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import {headers, cookies} from 'next/headers';
 
-export const defaultBrand={name:'layane-shop',tagline:'Care for your everyday',color:'#205b44',logo:'/logo.png',phone:'+212660286462',currency:'MAD'};
+export const defaultBrand={name:'layane-shop',tagline:'Care for your everyday',color:'#205b44',logo:'/logo.png',phone:'+212660286462',pixelId:'1116296790985534',currency:'MAD'};
 
 let nodeD1Instance: any = null;
 
