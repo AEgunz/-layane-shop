@@ -8,8 +8,25 @@ const money=(n:number)=>new Intl.NumberFormat('en-MA',{maximumFractionDigits:2})
 const niceDate=(s:string)=>new Date(s).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'Africa/Casablanca'});
 const navs:any[]=[[LayoutDashboard,'Overview'],[PanelsTopLeft,'Landing pages'],[ShoppingBag,'Orders'],[ChartNoAxesCombined,'Analytics'],[Settings,'Brand settings']];
 
+function safeLocalStorageGet(key: string): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    return window.localStorage ? window.localStorage.getItem(key) : null;
+  } catch {
+    return null;
+  }
+}
+
+function safeLocalStorageSet(key: string, value: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    if (window.localStorage) window.localStorage.setItem(key, value);
+  } catch {}
+}
+
 function playNotificationChime() {
   try {
+    if (typeof window === 'undefined') return;
     const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
@@ -27,7 +44,7 @@ function playNotificationChime() {
 
 async function api(body?:any){
   let sessionToken = '';
-  if (typeof document !== 'undefined') {
+  if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     const match = document.cookie.match(/admin_session=([^;]+)/);
     if (match) sessionToken = match[1];
   }
@@ -532,7 +549,7 @@ export default function Studio(){
       const d = await api();
       if (d && Array.isArray(d.orders) && d.orders.length > 0) {
         const latestOrder = d.orders[0];
-        const lastSeenId = typeof localStorage !== 'undefined' ? localStorage.getItem('layane_last_seen_order') : null;
+        const lastSeenId = safeLocalStorageGet('layane_last_seen_order');
 
         if (latestOrder && latestOrder.id !== lastSeenId) {
           if (lastSeenId) {
@@ -545,9 +562,7 @@ export default function Studio(){
               });
             }
           }
-          if (typeof localStorage !== 'undefined') {
-            localStorage.setItem('layane_last_seen_order', latestOrder.id);
-          }
+          safeLocalStorageSet('layane_last_seen_order', latestOrder.id);
         }
       }
       setData(d);
@@ -687,7 +702,7 @@ export default function Studio(){
   const b=data.brand;const pages=data.pages;const allOrders=data.orders;const since=range==='all'?'':new Date(Date.now()-Number(range)*86400000).toISOString();const orders=allOrders.filter((o:any)=>!since||o.created_at>=since);const visits=data.visits.filter((v:any)=>!since||v.day>=since.slice(0,10));const visitCount=visits.reduce((n:number,v:any)=>n+v.count,0);const activeOrders=orders.filter((o:any)=>o.status!=='cancelled');const sales=orders.filter((o:any)=>o.status==='delivered').reduce((n:number,o:any)=>n+o.total,0);const conversion=visitCount?(orders.length/visitCount*100).toFixed(1):'0';const newOrders=allOrders.filter((o:any)=>o.status==='new').length;
 
   useEffect(() => {
-    if (data && typeof document !== 'undefined') {
+    if (data && typeof window !== 'undefined' && typeof document !== 'undefined') {
       if (newOrders > 0) {
         document.title = `🔴 (${newOrders}) ORDERS - layane-shop Studio`;
       } else {
