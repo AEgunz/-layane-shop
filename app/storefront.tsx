@@ -87,6 +87,7 @@ function OrderFormSection({
 
   const unitPrice = p.price || 249;
   const total = unitPrice * quantity + (p.shipping || 0);
+  const productName = (!p.name || p.name === 'Untitled product' || p.name === 'Untitled') ? 'باك الراحة والشفاء الطبيعي' : p.name;
 
   return (
     <div id="checkout-form" className="orderbox animated-orderbox">
@@ -181,7 +182,7 @@ function OrderFormSection({
         <div className="order-summary-card">
           <div className="summary-row">
             <span>{ar ? 'المنتج:' : 'Product:'}</span>
-            <strong>{p.name && p.name !== 'Untitled product' ? p.name : 'باك الراحة والشفاء الطبيعي'}</strong>
+            <strong>{productName}</strong>
           </div>
           <div className="summary-row">
             <span>{ar ? 'الكمية المختارة:' : 'Quantity:'}</span>
@@ -396,7 +397,7 @@ export function ProductView({page,brand,preview}:any){
               title="تواصل معنا عبر الواتساب"
             >
               <MessageCircle size={16} />
-              <span dir="ltr">{brand.phone}</span>
+              <span style={{ unicodeBidi: 'plaintext', direction: 'ltr' }}>06 60 28 64 62</span>
             </a>
           )}
         </div>
@@ -416,13 +417,13 @@ export function ProductView({page,brand,preview}:any){
 
             {p.headline && <p className="landing-headline">{p.headline}</p>}
 
-            <div className="price-tag-wrapper" dir="ltr">
+            <div className="price-tag-wrapper">
               <span className="current-price">{money(p.price || 249)}</span>
               {p.comparePrice > (p.price || 249) && (
                 <span className="old-price">{money(p.comparePrice)}</span>
               )}
               <span className="free-shipping-badge">
-                {p.shipping ? `+${money(p.shipping)}` : (ar ? 'توصيل مجاني 🚚' : 'Free Shipping')}
+                {p.shipping ? `توصيل: ${money(p.shipping)}` : (ar ? 'توصيل مجاني 🚚' : 'Free Shipping')}
               </span>
             </div>
 

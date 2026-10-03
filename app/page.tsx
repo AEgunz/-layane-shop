@@ -25,13 +25,16 @@ export default async function Page() {
   let brandData: any = defaultBrand;
 
   try {
-    const row = await db().prepare("SELECT data FROM pages WHERE status='published' ORDER BY rowid ASC").first<{ data: string }>();
+    const row = await db().prepare("SELECT id, data FROM pages WHERE status='published' ORDER BY rowid ASC").first<{ id: string; data: string }>();
     if (row && row.data) {
       const parsed = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
-      if (parsed && parsed.name && parsed.name !== 'Untitled product') {
+      if (parsed && parsed.name && parsed.name !== 'Untitled product' && parsed.name !== 'Untitled') {
         pageData = parsed;
       } else if (parsed) {
         pageData = { ...parsed, name: 'باك الراحة والشفاء الطبيعي' };
+        try {
+          await db().prepare("UPDATE pages SET data=? WHERE id=?").bind(JSON.stringify(pageData), row.id).run();
+        } catch {}
       }
     }
   } catch {}
