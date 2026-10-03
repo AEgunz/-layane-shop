@@ -653,6 +653,15 @@ export default function Studio(){
   function newPage(){const id=crypto.randomUUID();setEditor({id,name:'Untitled product',slug:'product-'+id.slice(0,8),price:199,comparePrice:0,shipping:0,status:'draft',template:'editorial',language:'ar',headline:'',description:'',image:'',images:[],reviewsImage:'',customHtml:'',benefits:'',cta:'اطلب الآن',sections:[],faq:[],createdAt:new Date().toISOString()});setTab('Landing pages')}
   function exportOrders(rows:any[]){const fields=['id','customer','phone','city','address','product','quantity','unit_price','shipping','total','status','created_at','notes'];const cell=(x:any)=>'"'+String(x??'').replace(/^[=+@-]/,"'$&").replaceAll('"','""')+'"';const csv='\uFEFF'+[fields.join(','),...rows.map(o=>fields.map(k=>cell(o[k])).join(','))].join('\r\n');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));const a=document.createElement('a');a.href=url;a.download='layane-shop-orders.csv';a.click();URL.revokeObjectURL(url)}
 
+  const newOrders = (data?.orders ?? []).filter((o: { status: string }) => o.status === 'new').length;
+
+  // Keep this hook before the login return so every render uses the same hooks.
+  useEffect(() => {
+    document.title = newOrders > 0
+      ? `🔴 (${newOrders}) ORDERS - layane-shop Studio`
+      : 'layane-shop Store Studio';
+  }, [newOrders]);
+
   if (!data) {
     return (
       <div className="login-backdrop">
@@ -699,17 +708,7 @@ export default function Studio(){
   const allowedNavs = navs.filter(([_, label]) => userPerms.includes(label));
   const activeUser = data.currentAdmin || { name: 'Primary Administrator', username: 'admin', role: 'full' };
 
-  const b=data.brand;const pages=data.pages;const allOrders=data.orders;const since=range==='all'?'':new Date(Date.now()-Number(range)*86400000).toISOString();const orders=allOrders.filter((o:any)=>!since||o.created_at>=since);const visits=data.visits.filter((v:any)=>!since||v.day>=since.slice(0,10));const visitCount=visits.reduce((n:number,v:any)=>n+v.count,0);const activeOrders=orders.filter((o:any)=>o.status!=='cancelled');const sales=orders.filter((o:any)=>o.status==='delivered').reduce((n:number,o:any)=>n+o.total,0);const conversion=visitCount?(orders.length/visitCount*100).toFixed(1):'0';const newOrders=allOrders.filter((o:any)=>o.status==='new').length;
-
-  useEffect(() => {
-    if (data && typeof window !== 'undefined' && typeof document !== 'undefined') {
-      if (newOrders > 0) {
-        document.title = `🔴 (${newOrders}) ORDERS - layane-shop Studio`;
-      } else {
-        document.title = 'layane-shop Store Studio';
-      }
-    }
-  }, [data, newOrders]);
+  const b=data.brand;const pages=data.pages;const allOrders=data.orders;const since=range==='all'?'':new Date(Date.now()-Number(range)*86400000).toISOString();const orders=allOrders.filter((o:any)=>!since||o.created_at>=since);const visits=data.visits.filter((v:any)=>!since||v.day>=since.slice(0,10));const visitCount=visits.reduce((n:number,v:any)=>n+v.count,0);const activeOrders=orders.filter((o:any)=>o.status!=='cancelled');const sales=orders.filter((o:any)=>o.status==='delivered').reduce((n:number,o:any)=>n+o.total,0);const conversion=visitCount?(orders.length/visitCount*100).toFixed(1):'0';
 
   const visiblePages=pages.filter((p:any)=>(filter==='all'||p.status===filter)&&p.name.toLowerCase().includes(query.toLowerCase()));const visibleOrders=orders.filter((o:any)=>(filter==='all'||o.status===filter)&&[o.customer,o.phone,o.product,o.id].some((v:string)=>v.toLowerCase().includes(query.toLowerCase())));const dateControl=<select className="datefilter" aria-label="Date range" value={range} onChange={e=>setRange(e.target.value)}><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="all">All time</option></select>;
   const performance=<div className="tablewrap"><table><thead><tr><th>Product</th><th>Visits</th><th>Orders</th><th>Conversion</th><th>Sales</th></tr></thead><tbody>{pages.filter((p:any)=>p.status!=='archived').map((p:any)=>{const v=visits.filter((x:any)=>x.page_id===p.id).reduce((n:number,x:any)=>n+x.count,0);const o=orders.filter((x:any)=>x.page_id===p.id);return <tr key={p.id}><td><div className="tableproduct">{p.image?<img src={p.image} alt=""/>:<span className="productplaceholder"><ShoppingBag size={18}/></span>}<span>{p.name}<small>/p/{p.slug}</small></span></div></td><td>{v.toLocaleString()}</td><td>{o.length}</td><td>{v?(o.length/v*100).toFixed(1):0}%</td><td className="strong">{money(o.filter((x:any)=>x.status==='delivered').reduce((n:number,x:any)=>n+o.total,0))}</td></tr>})}</tbody></table></div>;

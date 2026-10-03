@@ -16,19 +16,19 @@ async function checkNewOrders() {
       const cachedRes = await cache.match('last-order-id');
       const lastId = cachedRes ? await cachedRes.text() : '';
 
-      if (lastId && latest.id !== lastId) {
+      if (latest.id && latest.id !== lastId) {
         await cache.put('last-order-id', new Response(latest.id));
-        await self.registration.showNotification(`🚨 طلب جديد #${latest.id.slice(0, 8).toUpperCase()}!`, {
-          body: `الزبون: ${latest.customer} (${latest.city}) • المجموع: ${latest.total} DH`,
-          icon: '/icon.png',
-          badge: '/icon.png',
-          vibrate: [300, 100, 300, 100, 300],
-          tag: 'order-' + latest.id,
-          renotify: true,
-          data: { url: '/admin' }
-        });
-      } else if (!lastId) {
-        await cache.put('last-order-id', new Response(latest.id));
+        if (lastId) {
+          await self.registration.showNotification(`🚨 طلب جديد #${latest.id.slice(0, 8).toUpperCase()}!`, {
+            body: `الزبون: ${latest.customer} (${latest.city}) • المجموع: ${latest.total} DH`,
+            icon: '/icon.png',
+            badge: '/icon.png',
+            vibrate: [300, 100, 300, 100, 300],
+            tag: 'order-' + latest.id,
+            renotify: true,
+            data: { url: '/admin' }
+          });
+        }
       }
     }
   } catch (e) {
