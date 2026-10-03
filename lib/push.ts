@@ -1,6 +1,6 @@
 import webpush, {type PushSubscription} from 'web-push';
 import {createHash} from 'node:crypto';
-import {putPushSetting, deletePushSetting, listPushSubscriptions, orderWasSaved} from './push-storage';
+import {putPushSetting, deletePushSetting, listPushSubscriptions, orderWasSaved, newOrderCount} from './push-storage';
 
 const prefix = 'push-subscription:';
 
@@ -39,7 +39,7 @@ export async function removeSubscription(endpoint: string) {
   await deletePushSetting(subscriptionKey(endpoint));
 }
 
-export async function sendPush(subscription: PushSubscription, payload: {title: string; body: string; tag: string}) {
+export async function sendPush(subscription: PushSubscription, payload: {title: string; body: string; tag: string; badgeCount?: number}) {
   if (!validPushEndpoint(subscription.endpoint)) throw new Error('Invalid push service');
   // Generate standard encrypted Web Push, then use fetch for Node and Workers.
   const request = webpush.generateRequestDetails(subscription, JSON.stringify(payload), {
@@ -62,12 +62,15 @@ export async function notifyNewOrder(id: string) {
     if (!await orderWasSaved(id)) return;
     const rows = await listPushSubscriptions();
     if (!rows.length) return;
+    // A failed count must not prevent delivery of the order notification.
+    const badgeCount = await newOrderCount().catch(() => undefined);
     await Promise.all(rows.map(async (row: {value: string}) => {
       try {
         await sendPush(JSON.parse(row.value), {
           title: 'طلب جديد في متجر layane-shop',
           body: `وصلك طلب جديد #${id.slice(0, 8).toUpperCase()}. افتح التطبيق لمعاينة التفاصيل.`,
           tag: `order-${id}`,
+          badgeCount,
         });
       } catch (error) {
         console.error('Order push failed:', error instanceof Error ? error.message : 'Unknown error');

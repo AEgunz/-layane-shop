@@ -46,3 +46,20 @@ export async function orderWasSaved(id: string) {
   if (supabase()) return (await rest(`orders?id=eq.${encodeURIComponent(id)}&select=id`)).length > 0;
   return Boolean(await db().prepare('SELECT id FROM orders WHERE id=?').bind(id).first());
 }
+
+export async function newOrderCount(): Promise<number> {
+  const config = supabase();
+  if (config) {
+    const response = await fetch(`${config.url}/rest/v1/orders?status=eq.new&select=id`, {
+      method: 'HEAD',
+      headers: {apikey: config.key, Authorization: `Bearer ${config.key}`, Prefer: 'count=exact'},
+      signal: AbortSignal.timeout(8000),
+    });
+    const total = response.headers.get('content-range')?.split('/')[1];
+    if (!response.ok || !total || !/^\d+$/.test(total)) throw new Error('Unable to count new orders');
+    return Number(total);
+  }
+  const row = await db().prepare("SELECT count(*) AS count FROM orders WHERE status='new'").first();
+  if (row?.count == null) throw new Error('Unable to count new orders');
+  return Number(row.count);
+}

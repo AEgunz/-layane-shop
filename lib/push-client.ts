@@ -51,3 +51,17 @@ export async function showOrderNotification(id: string) {
   const registration = await pushRegistration();
   registration.active?.postMessage({type: 'ORDER_NOTIFICATION', id});
 }
+
+export async function updateOrderBadge(count: number) {
+  const badgeNavigator = navigator as Navigator & {
+    setAppBadge?: (count: number) => Promise<void>;
+    clearAppBadge?: () => Promise<void>;
+  };
+  if (!Number.isSafeInteger(count) || count < 0) return;
+  try {
+    if (count === 0 && badgeNavigator.clearAppBadge) await badgeNavigator.clearAppBadge();
+    else await badgeNavigator.setAppBadge?.(count);
+  } catch {
+    // Unsupported/blocked OS badges must never interrupt the admin.
+  }
+}

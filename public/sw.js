@@ -10,6 +10,14 @@ function showNotification(data) {
     const key = new URL('/__notification/' + encodeURIComponent(tag), self.location.origin).href;
     const isOrder = tag.startsWith('order-');
     if (isOrder && await cache.match(key)) return;
+    if (Number.isSafeInteger(data.badgeCount) && data.badgeCount >= 0) {
+      try {
+        if (data.badgeCount === 0 && self.navigator?.clearAppBadge) await self.navigator.clearAppBadge();
+        else await self.navigator?.setAppBadge?.(data.badgeCount);
+      } catch {
+        // Badge support/permissions must not block the notification itself.
+      }
+    }
     await self.registration.showNotification(data.title || 'طلب جديد في المتجر', {
       body: data.body || 'وصلك طلب جديد. افتح التطبيق لمعاينة التفاصيل.',
       icon: '/icon.png', badge: '/icon.png', vibrate: [300, 100, 300],

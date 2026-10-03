@@ -3,7 +3,7 @@ import {useState,useEffect,useCallback} from 'react';
 import {LayoutDashboard,PanelsTopLeft,ShoppingBag,ChartNoAxesCombined,Settings,Plus,Leaf,ArrowUpRight,Globe,MousePointer2,Wallet,Search,ChevronDown,Download,ExternalLink,Copy,Pencil,X,Monitor,Smartphone,Check,Archive,RefreshCw,ImagePlus,ArrowLeft,ArrowRight,Eye,ShieldCheck,Upload,LogOut,Lock,MessageCircle,Trash2,Bell} from 'lucide-react';
 import {Logo,ProductView} from './storefront';
 import JSZip from 'jszip';
-import {enablePush, disablePush, showOrderNotification} from '@/lib/push-client';
+import {enablePush, disablePush, showOrderNotification, updateOrderBadge} from '@/lib/push-client';
 
 const money=(n:number)=>new Intl.NumberFormat('en-MA',{maximumFractionDigits:2}).format(n)+' DH';
 const niceDate=(s:string)=>new Date(s).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'Africa/Casablanca'});
@@ -657,6 +657,12 @@ export default function Studio(){
   function exportOrders(rows:any[]){const fields=['id','customer','phone','city','address','product','quantity','unit_price','shipping','total','status','created_at','notes'];const cell=(x:any)=>'"'+String(x??'').replace(/^[=+@-]/,"'$&").replaceAll('"','""')+'"';const csv='\uFEFF'+[fields.join(','),...rows.map(o=>fields.map(k=>cell(o[k])).join(','))].join('\r\n');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));const a=document.createElement('a');a.href=url;a.download='layane-shop-orders.csv';a.click();URL.revokeObjectURL(url)}
 
   const newOrders = (data?.orders ?? []).filter((o: { status: string }) => o.status === 'new').length;
+
+  useEffect(() => {
+    // Wait for session loading; clear the installed app badge on sign-out.
+    if (data) void updateOrderBadge(canReceiveOrders ? newOrders : 0);
+    else if (error === 'AUTH') void updateOrderBadge(0);
+  }, [data, newOrders, canReceiveOrders, error]);
 
   // Keep this hook before the login return so every render uses the same hooks.
   useEffect(() => {

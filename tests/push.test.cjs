@@ -18,12 +18,12 @@ function load(file, dependencies = {}, globals = {}) {
   return exports;
 }
 
-function worker() {
+function worker(navigator = {}) {
   const handlers = {}, notifications = [], cached = new Map();
   const cache = {match: async k => cached.get(k), put: async (k,v) => cached.set(k,v), keys: async () => [...cached.keys()], delete: async k => cached.delete(k)};
   vm.runInNewContext(fs.readFileSync('public/sw.js', 'utf8'), {
     URL, Response, caches: {open: async () => cache},
-    self: {location: {origin: 'https://shop.example'}, addEventListener: (n, fn) => handlers[n] = fn,
+    self: {navigator, location: {origin: 'https://shop.example'}, addEventListener: (n, fn) => handlers[n] = fn,
       registration: {showNotification: async (title, options) => notifications.push({title, ...options})},
       clients: {matchAll: async () => [], openWindow: async path => path}},
   });
@@ -63,7 +63,7 @@ test('click opens admin when the app is closed', async () => {
 function server(fetch, overrides = {}, configured = true) {
   const keys = webpush.generateVAPIDKeys();
   const env = configured ? {VAPID_PUBLIC_KEY: keys.publicKey, VAPID_PRIVATE_KEY: keys.privateKey, VAPID_SUBJECT: 'https://shop.example'} : {};
-  const storage = {putPushSetting: async () => {}, deletePushSetting: async () => {}, listPushSubscriptions: async () => [], orderWasSaved: async () => true, ...overrides};
+  const storage = {putPushSetting: async () => {}, deletePushSetting: async () => {}, listPushSubscriptions: async () => [], orderWasSaved: async () => true, newOrderCount: async () => 3, ...overrides};
   return load('lib/push.ts', {'./push-storage': storage}, {process: {env}, fetch});
 }
 function subscription() {
@@ -128,4 +128,47 @@ test('subscription API requires admin authorization before returning keys', asyn
     '@/lib/push': {pushConfig: () => {throw Error('must not read config');}},
   });
   assert.equal((await routes.GET()).status, 401);
+});
+
+test('background order push sets exact icon count; duplicate does not overwrite it', async () => {
+  const counts = [];
+  const w = worker({setAppBadge: async count => counts.push(count)});
+  const event = {data: {json: () => ({tag: 'order-background', badgeCount: 12})}};
+  await w.dispatch('push', event);
+  await w.dispatch('push', event);
+  assert.deepEqual(counts, [12]);
+});
+
+test('badge permission failure still delivers notification and test does not change count', async () => {
+  let calls = 0;
+  const w = worker({setAppBadge: async () => {calls++; throw Error('blocked');}});
+  await w.dispatch('push', {data: {json: () => ({tag: 'order-456', badgeCount: 5})}});
+  await w.dispatch('push', {data: {json: () => ({tag: 'layane-push-test'})}});
+  assert.equal(calls, 1);
+  assert.equal(w.notifications.length, 2);
+});
+
+test('foreground badge tracks new orders and clears when none remain', async () => {
+  const counts = [];
+  const client = load('lib/push-client.ts', {}, {navigator: {
+    setAppBadge: async count => counts.push(count), clearAppBadge: async () => counts.push(0),
+  }});
+  await client.updateOrderBadge(7);
+  await client.updateOrderBadge(2);
+  await client.updateOrderBadge(0);
+  await client.updateOrderBadge(-1);
+  assert.deepEqual(counts, [7, 2, 0]);
+  await load('lib/push-client.ts', {}, {navigator: {}}).updateOrderBadge(3);
+});
+
+test('Supabase counts all new orders without pagination truncation', async () => {
+  let request;
+  const storage = load('lib/push-storage.ts', {'./store': {}}, {
+    process: {env: {SUPABASE_URL: 'https://db.example', SUPABASE_SERVICE_ROLE_KEY: 'test-only'}},
+    fetch: async (url, init) => { request = {url, ...init}; return new Response(null, {headers: {'content-range': '0-0/1502'}}); },
+  });
+  assert.equal(await storage.newOrderCount(), 1502);
+  assert.equal(request.method, 'HEAD');
+  assert.equal(request.headers.Prefer, 'count=exact');
+  assert.match(request.url, /status=eq.new/);
 });
