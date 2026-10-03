@@ -520,7 +520,7 @@ export default function Studio(){
     }
   }
 
-  const reload = useCallback(async () => {
+  const reload = useCallback(async (isBackground = false) => {
     try {
       const d = await api();
       if (d && Array.isArray(d.orders)) {
@@ -542,14 +542,16 @@ export default function Studio(){
       setLoginErr('');
       return d;
     } catch (e: any) {
-      setError(e.message);
+      if (!isBackground) {
+        setError(e.message || 'فشل الاتصال بالخادم');
+      }
     }
   }, [prevOrderCount]);
 
   useEffect(() => {
-    reload();
+    reload(false);
     const interval = setInterval(() => {
-      reload();
+      reload(true);
     }, 10000);
     return () => clearInterval(interval);
   }, [reload]);
@@ -582,7 +584,7 @@ export default function Studio(){
       if (d.session) {
         document.cookie = `admin_session=${d.session}; path=/; max-age=2592000; SameSite=Lax`;
       }
-      await reload();
+      await reload(false);
     } catch(err:any){
       setLoginErr(err.message);
     } finally {
@@ -617,7 +619,7 @@ export default function Studio(){
     setBranding(null);
   }
 
-  async function save(body:any,message:string){setBusy(true);setError('');try{await api(body);const d=await reload();setToast(message);return d}catch(e:any){setError(e.message);return null}finally{setBusy(false)}}
+  async function save(body:any,message:string){setBusy(true);setError('');try{await api(body);const d=await reload(false);setToast(message);return d}catch(e:any){setError(e.message);return null}finally{setBusy(false)}}
   async function savePage(status?:string){const p={...editor,status:status||editor.status};const result=await save({action:'page',page:p},p.status==='published'?'Page published. Your storefront is ready.':'Page saved.');if(result)setEditor(p)}
   async function duplicate(p:any){const id=crypto.randomUUID();const cp={...p,id,slug:p.slug+'-'+id.slice(0,5),name:p.name+' (copy)',status:'draft',createdAt:new Date().toISOString()};const result=await save({action:'page',page:cp},'Page duplicated as a draft.');if(result){setEditor(cp)}}
   function newPage(){const id=crypto.randomUUID();setEditor({id,name:'Untitled product',slug:'product-'+id.slice(0,8),price:199,comparePrice:0,shipping:0,status:'draft',template:'editorial',language:'ar',headline:'',description:'',image:'',images:[],reviewsImage:'',customHtml:'',benefits:'',cta:'اطلب الآن',sections:[],faq:[],createdAt:new Date().toISOString()});setTab('Landing pages')}
@@ -817,7 +819,7 @@ export default function Studio(){
             </button>
 
             <span className="livebadge"><span/>{activeUser.name} (@{activeUser.username})</span>
-            <button className="iconbutton" title="Refresh store data" onClick={reload}><RefreshCw size={17}/></button>
+            <button className="iconbutton" title="Refresh store data" onClick={()=>reload(false)}><RefreshCw size={17}/></button>
             <div className="avatar">{activeUser.name[0].toUpperCase()}</div>
           </div>
         </header>
