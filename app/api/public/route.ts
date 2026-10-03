@@ -167,9 +167,12 @@ export async function POST(r:Request){
       let b: any = {};
       try { b = await brand(); } catch {}
 
-      let adminPhone = String(b?.phone || process.env.ADMIN_WHATSAPP_PHONE || '0648344089').replace(/[^0-9]/g, '');
+      let adminPhone = String(b?.phone || process.env.ADMIN_WHATSAPP_PHONE || '0660286462').replace(/[^0-9]/g, '');
       if (adminPhone.startsWith('0')) {
         adminPhone = '212' + adminPhone.slice(1);
+      }
+      if (!adminPhone || adminPhone === '212' || adminPhone.length < 9) {
+        adminPhone = '212660286462';
       }
 
       const msgText = `🚨 *طلب جديد في متجر ${b?.name || 'layane-shop'}!*
