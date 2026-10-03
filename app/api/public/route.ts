@@ -125,8 +125,8 @@ export async function POST(r:Request){
 
       let pageId = row?.id || 'default-product';
       let productName = 'layane-shop Product';
-      let productPrice = 249;
-      let productShipping = 0;
+      let productPrice = typeof x.price === 'number' && x.price > 0 ? x.price : 249;
+      let productShipping = typeof x.shipping === 'number' ? x.shipping : 0;
 
       if (row && row.data) {
         try {
@@ -136,6 +136,10 @@ export async function POST(r:Request){
           if (typeof p.shipping === 'number') productShipping = p.shipping;
         } catch {}
       }
+
+      if (typeof x.price === 'number' && x.price > 0) productPrice = x.price;
+      if (typeof x.shipping === 'number') productShipping = x.shipping;
+      if (typeof x.productName === 'string' && x.productName.trim()) productName = x.productName.trim();
 
       const o = z.object({
         id: z.string().uuid(),
@@ -181,10 +185,47 @@ export async function POST(r:Request){
 
       const whatsappUrl = `https://wa.me/${adminPhone}?text=${encodeURIComponent(msgText)}`;
 
-      const callmebotApiKey = process.env.CALLMEBOT_API_KEY;
+      // 1. Automatic Server-side WhatsApp notification (CallMeBot Free API)
+      const callmebotApiKey = process.env.CALLMEBOT_API_KEY || process.env.WHATSAPP_API_KEY;
       if (callmebotApiKey && adminPhone) {
         fetch(`https://api.callmebot.com/whatsapp.php?phone=+${adminPhone}&text=${encodeURIComponent(msgText)}&apikey=${callmebotApiKey}`)
           .catch(() => {});
+      }
+
+      // 2. Automatic Server-side Telegram Bot Notification
+      const telegramToken = process.env.TELEGRAM_BOT_TOKEN;
+      const telegramChatId = process.env.TELEGRAM_CHAT_ID;
+      if (telegramToken && telegramChatId) {
+        fetch(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: telegramChatId,
+            text: msgText,
+            parse_mode: 'Markdown'
+          })
+        }).catch(() => {});
+      }
+
+      // 3. Automatic Server-side Webhook Notification
+      const webhookUrl = process.env.ORDER_WEBHOOK_URL;
+      if (webhookUrl) {
+        fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event: 'new_order',
+            reference: ref,
+            customer: o.name,
+            phone: o.phone,
+            city: o.city,
+            address: o.address,
+            product: productName,
+            quantity: o.quantity,
+            total,
+            created_at: new Date().toISOString()
+          })
+        }).catch(() => {});
       }
 
       return Response.json({
