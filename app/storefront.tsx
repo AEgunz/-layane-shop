@@ -27,7 +27,6 @@ export function Logo({brand}:{brand:any}){
 
 function OrderFormSection({ sectionId, done, formState, setFormState, quantity, setQuantity, order, busy, error, ar, fr, p }: any) {
   const refCode = typeof done === 'object' ? (done as any).ref : done;
-  const whatsappUrl = typeof done === 'object' ? (done as any).whatsappUrl : '';
 
   return (
     <section id={sectionId} className="ordersection" style={{ margin: '20px auto' }}>
@@ -40,35 +39,9 @@ function OrderFormSection({ sectionId, done, formState, setFormState, quantity, 
           <p style={{ fontSize: '15px', color: '#444', marginBottom: '6px' }}>
             {ar ? 'الرقم المرجعي للطلب' : 'Order reference'}: <strong style={{ color: '#205b44' }}>#{refCode}</strong>
           </p>
-          <p style={{ fontSize: '14px', color: '#666', marginBottom: '20px' }}>
+          <p style={{ fontSize: '14px', color: '#666', margin: 0 }}>
             {ar ? 'سنتواصل معك هاتفياً لتأكيد التفاصيل والتوصيل.' : 'We will contact you shortly.'}
           </p>
-
-          {whatsappUrl && (
-            <a
-              href={whatsappUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="storebutton"
-              style={{
-                background: '#25D366',
-                color: '#fff',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                textDecoration: 'none',
-                padding: '12px 24px',
-                fontSize: '15px',
-                fontWeight: '800',
-                borderRadius: '30px',
-                boxShadow: '0 6px 20px rgba(37,211,102,0.35)',
-                margin: '10px auto 0 auto'
-              }}
-            >
-              <MessageCircle size={18} />
-              {ar ? 'إرسال تفاصيل الطلب عبر الواتساب (WhatsApp)' : 'Send Order Alert on WhatsApp'}
-            </a>
-          )}
         </div>
       ) : (
         <form onSubmit={order}>
