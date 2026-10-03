@@ -833,27 +833,15 @@ export default function Studio(){
             {deferredPrompt && (
               <button
                 type="button"
+                className="install-app-btn"
                 onClick={async () => {
                   deferredPrompt.prompt();
                   const { outcome } = await deferredPrompt.userChoice;
                   if (outcome === 'accepted') setDeferredPrompt(null);
                 }}
-                style={{
-                  padding: '6px 14px',
-                  fontSize: '12px',
-                  borderRadius: '20px',
-                  background: '#205b44',
-                  color: '#fff',
-                  border: 0,
-                  fontWeight: '700',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  cursor: 'pointer'
-                }}
               >
                 <Smartphone size={14} />
-                تثبيت التطبيق على الهاتف (Install Mobile App)
+                <span>تثبيت التطبيق 📲</span>
               </button>
             )}
 
