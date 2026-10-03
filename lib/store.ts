@@ -95,6 +95,20 @@ function getSupabaseD1() {
           return [];
         }
 
+        if (this.sql.includes('DELETE FROM orders')) {
+          const id = this.params[0];
+          if (id) {
+            await fetch(`${cleanUrl}/rest/v1/orders?id=eq.${encodeURIComponent(id)}`, {
+              method: 'DELETE',
+              headers: {
+                'apikey': supabaseKey,
+                'Authorization': `Bearer ${supabaseKey}`
+              }
+            });
+          }
+          return [];
+        }
+
         if (this.sql.includes('SELECT value FROM settings')) {
           let key = 'brand';
           if (this.params[0]) key = String(this.params[0]);

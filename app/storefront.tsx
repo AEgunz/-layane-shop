@@ -35,6 +35,20 @@ export function ProductView({page:p,brand:b,preview}:any){
   const fr=p.language==='fr';
   const id=crypto.randomUUID();
 
+  useEffect(() => {
+    if (preview) return;
+    let token = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('store-visit') : null;
+    if (!token) {
+      token = crypto.randomUUID();
+      if (typeof sessionStorage !== 'undefined') sessionStorage.setItem('store-visit', token);
+    }
+    fetch('/api/public', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'visit', slug: p.slug, token })
+    }).catch(() => {});
+  }, [p.slug, preview]);
+
   function openPolicy(key:string){
     const policies:Record<string,{title:string,content:React.ReactNode}> = {
       about:{
@@ -126,7 +140,21 @@ export function ProductView({page:p,brand:b,preview}:any){
       const res=await fetch('/api/public',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({action:'order',slug:p.slug,id,name:f.get('name'),phone:f.get('phone'),city:f.get('city'),address:f.get('address'),notes:'',quantity,website:f.get('website')||''})
+        body:JSON.stringify({
+          action:'order',
+          slug:p.slug,
+          price:p.price,
+          shipping:p.shipping,
+          productName:p.name,
+          id,
+          name:f.get('name'),
+          phone:f.get('phone'),
+          city:f.get('city'),
+          address:f.get('address'),
+          notes:'',
+          quantity,
+          website:f.get('website')||''
+        })
       });
       const data:any=await res.json();
       if(!res.ok)throw new Error(data.error);
