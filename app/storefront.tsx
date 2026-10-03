@@ -388,10 +388,24 @@ export default function Storefront({slug, page, brand}:any){
 
   if(!data) {
     return (
-      <div style={{display:'flex',justifyContent:'center',alignItems:'center',minHeight:'100vh',background:'#f5f7f4'}}>
-        <div style={{textAlign:'center'}}>
-          <Leaf size={40} style={{color:'#205b44',margin:'0 auto 10px auto'}}/>
-          <p style={{fontWeight:'700',color:'#205b44'}}>جار التحميل…</p>
+      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: '#f8faf7' }}>
+        <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
+          <img
+            src="/logo.png"
+            alt="layane-shop Logo"
+            style={{
+              maxHeight: '80px',
+              maxWidth: '240px',
+              objectFit: 'contain',
+              animation: 'logoPulse 1.8s infinite ease-in-out'
+            }}
+          />
+          <div className="spinner-dots" style={{ marginTop: '8px' }}>
+            <span />
+            <span />
+            <span />
+          </div>
+          <p className="loading-text" style={{ margin: 0 }}>جار التحميل…</p>
         </div>
       </div>
     );
