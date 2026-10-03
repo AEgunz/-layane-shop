@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 export default async function Page() {
   const defaultPage = {
     id: 'default-product',
-    name: 'layane-shop Store',
+    name: 'باك الراحة والشفاء الطبيعي',
     slug: 'home',
     price: 249,
     comparePrice: 345,
@@ -14,9 +14,9 @@ export default async function Page() {
     status: 'published',
     template: 'editorial',
     language: 'ar',
-    headline: 'مرحباً بكم في متجر layane-shop الرسمي',
+    headline: 'المنتج الأكثر طلباً وشهرة بالمغرب • نتائج مضمونة 100%',
     description: 'أجود المنتجات الطبيعية عالية الجودة المعروضة بأسعار مميزة مع خدمة التوصيل السريع والدفع عند الاستلام.',
-    cta: 'اطلب الآن',
+    cta: 'اضغط هنا للطلب والدفع عند الاستلام',
     benefits: 'توصيل سريع مجاني لكافة المدن المغربية\nضمان الجودة والرضا التام 100%\nالدفع نقداً بعد معاينة الشحنة عند الاستلام',
     createdAt: new Date().toISOString()
   };
@@ -27,7 +27,12 @@ export default async function Page() {
   try {
     const row = await db().prepare("SELECT data FROM pages WHERE status='published' ORDER BY rowid ASC").first<{ data: string }>();
     if (row && row.data) {
-      pageData = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
+      const parsed = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
+      if (parsed && parsed.name && parsed.name !== 'Untitled product') {
+        pageData = parsed;
+      } else if (parsed) {
+        pageData = { ...parsed, name: 'باك الراحة والشفاء الطبيعي' };
+      }
     }
   } catch {}
 

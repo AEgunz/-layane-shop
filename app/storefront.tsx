@@ -10,14 +10,16 @@ export function Logo({brand}:any){
       {brand.logo ? (
         <img
           src={brand.logo}
-          alt={brand.name}
+          alt={brand.name || 'layane-shop'}
           className="brandlogo-img"
           style={{ maxHeight: '38px', maxWidth: '150px', objectFit: 'contain' }}
         />
       ) : (
-        <span className="brandicon">{brand.name?.[0]?.toUpperCase() || 'L'}</span>
+        <>
+          <span className="brandicon">{brand.name?.[0]?.toUpperCase() || 'L'}</span>
+          <span>{brand.name}</span>
+        </>
       )}
-      <span>{brand.name}</span>
     </a>
   );
 }
