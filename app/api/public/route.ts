@@ -1,6 +1,7 @@
 import {db,brand,error,originCheck,getAdmins} from '@/lib/store';
 import {getChatGPTUser} from '@/app/chatgpt-auth';
 import {z} from 'zod';
+import {notifyNewOrder} from '@/lib/push';
 export const dynamic='force-dynamic';
 
 export async function GET(r:Request){
@@ -161,6 +162,7 @@ export async function POST(r:Request){
           await db().prepare("INSERT INTO orders(id,page_id,product,customer,phone,city,address,quantity,unit_price,shipping,total,status,created_at,notes) VALUES(?,?,?,?,?,?,?,?,?,?,?,'new',?,?)")
             .bind(o.id, pageId, productName, o.name, o.phone, o.city, o.address, o.quantity, productPrice, productShipping, total, new Date().toISOString(), o.notes)
             .run();
+          await notifyNewOrder(o.id);
         }
       } catch {}
 

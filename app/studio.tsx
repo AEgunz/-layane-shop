@@ -3,6 +3,7 @@ import {useState,useEffect,useCallback} from 'react';
 import {LayoutDashboard,PanelsTopLeft,ShoppingBag,ChartNoAxesCombined,Settings,Plus,Leaf,ArrowUpRight,Globe,MousePointer2,Wallet,Search,ChevronDown,Download,ExternalLink,Copy,Pencil,X,Monitor,Smartphone,Check,Archive,RefreshCw,ImagePlus,ArrowLeft,ArrowRight,Eye,ShieldCheck,Upload,LogOut,Lock,MessageCircle,Trash2,Bell} from 'lucide-react';
 import {Logo,ProductView} from './storefront';
 import JSZip from 'jszip';
+import {enablePush, disablePush, showOrderNotification} from '@/lib/push-client';
 
 const money=(n:number)=>new Intl.NumberFormat('en-MA',{maximumFractionDigits:2}).format(n)+' DH';
 const niceDate=(s:string)=>new Date(s).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'Africa/Casablanca'});
@@ -507,19 +508,8 @@ export default function Studio(){
   const [notifGranted, setNotifGranted] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').then(async (reg) => {
-        try {
-          if ('periodicSync' in reg) {
-            await (reg as any).periodicSync.register('check-new-orders', {
-              minInterval: 12 * 60 * 1000
-            });
-          }
-        } catch {}
-      }).catch(() => {});
-    }
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      setNotifGranted(Notification.permission === 'granted');
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js', {updateViaCache: 'none'}).catch(() => {});
     }
 
     const handlePrompt = (e: Event) => {
@@ -530,19 +520,32 @@ export default function Studio(){
     return () => window.removeEventListener('beforeinstallprompt', handlePrompt);
   }, []);
 
+  const [notifBusy, setNotifBusy] = useState(false);
+
   async function requestNotificationPermission() {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
+    setNotifBusy(true);
+    try {
+      if (!('Notification' in window)) throw new Error('هذا المتصفح لا يدعم الإشعارات. استعمل Chrome أو Edge.');
       const perm = await Notification.requestPermission();
-      if (perm === 'granted') {
-        setNotifGranted(true);
-        playNotificationChime();
-        new Notification('📢 تم تفعيل الإشعارات الفورية على الهاتف!', {
-          body: 'ستصلك إشعارات وتنبيهات فورية بجميع الطلبيات الجديدة مباشرة على هاتفك.',
-          icon: '/icon.png'
-        });
-      }
-    }
+      if (perm !== 'granted') throw new Error('الإشعارات محظورة. فعّلها من إعدادات الموقع والتطبيق ثم حاول مجدداً.');
+      await enablePush(true);
+      setNotifGranted(true);
+      setToast('تم إرسال إشعار تجريبي إلى هذا الجهاز.');
+    } catch (e) {
+      setNotifGranted(false);
+      setError(e instanceof Error ? e.message : 'تعذر تفعيل الإشعارات');
+    } finally { setNotifBusy(false); }
   }
+
+  const canReceiveOrders = Boolean(data?.permissions?.includes('Orders'));
+  useEffect(() => {
+    if (!canReceiveOrders || !('Notification' in window) || Notification.permission !== 'granted') return;
+    let cancelled = false;
+    enablePush().then(() => { if (!cancelled) setNotifGranted(true); }).catch((e) => {
+      if (!cancelled) { setNotifGranted(false); setError(e.message); }
+    });
+    return () => { cancelled = true; };
+  }, [canReceiveOrders]);
 
   const reload = useCallback(async (isBackground = false) => {
     try {
@@ -555,16 +558,14 @@ export default function Studio(){
           if (lastSeenId) {
             playNotificationChime();
             if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-              new Notification(`🚨 طلب جديد #${latestOrder.id.slice(0, 8).toUpperCase()}!`, {
-                body: `الزبون: ${latestOrder.customer} (${latestOrder.city}) • المجموع: ${latestOrder.total} DH`,
-                icon: '/icon.png',
-                badge: '/icon.png'
-              });
+              showOrderNotification(latestOrder.id).catch(() => {});
             }
           }
           safeLocalStorageSet('layane_last_seen_order', latestOrder.id);
         }
       }
+      // An empty store still establishes a baseline, so its first order alerts.
+      if (d && Array.isArray(d.orders) && !d.orders.length) safeLocalStorageSet('layane_last_seen_order', '__empty__');
       setData(d);
       setError('');
       setLoginErr('');
@@ -622,6 +623,8 @@ export default function Studio(){
 
   async function handleLogout(){
     try {
+      if ('serviceWorker' in navigator) await disablePush();
+      setNotifGranted(false);
       await fetch('/api/public', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -630,7 +633,7 @@ export default function Studio(){
       document.cookie = 'admin_session=; path=/; max-age=0; SameSite=Lax';
       setData(null);
       setError('AUTH');
-    } catch {}
+    } catch (e) { setError(e instanceof Error ? e.message : 'تعذر تسجيل الخروج'); }
   }
 
   function navigate(t:string){
@@ -854,6 +857,8 @@ export default function Studio(){
                 type="button"
                 title={notifGranted ? 'الإشعارات الفورية مفعّلة' : 'تفعيل الإشعارات الفورية'}
                 onClick={requestNotificationPermission}
+                disabled={notifBusy}
+                aria-label={notifGranted ? 'اختبار الإشعارات' : 'تفعيل الإشعارات'}
                 style={{ color: notifGranted ? '#205b44' : '#888' }}
               >
                 <Bell size={18} />

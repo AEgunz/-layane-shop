@@ -1,80 +1,53 @@
-self.addEventListener('install', (event) => {
-  self.skipWaiting();
-});
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', event => event.waitUntil(self.clients.claim()));
 
-self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
-});
-
-async function checkNewOrders() {
-  try {
-    const res = await fetch('/api/store');
-    const data = await res.json();
-    if (data && Array.isArray(data.orders) && data.orders.length > 0) {
-      const latest = data.orders[0];
-      const cache = await caches.open('layane-last-order');
-      const cachedRes = await cache.match('last-order-id');
-      const lastId = cachedRes ? await cachedRes.text() : '';
-
-      if (latest.id && latest.id !== lastId) {
-        await cache.put('last-order-id', new Response(latest.id));
-        if (lastId) {
-          await self.registration.showNotification(`🚨 طلب جديد #${latest.id.slice(0, 8).toUpperCase()}!`, {
-            body: `الزبون: ${latest.customer} (${latest.city}) • المجموع: ${latest.total} DH`,
-            icon: '/icon.png',
-            badge: '/icon.png',
-            vibrate: [300, 100, 300, 100, 300],
-            tag: 'order-' + latest.id,
-            renotify: true,
-            data: { url: '/admin' }
-          });
-        }
-      }
+// Serialize push and foreground alerts so the same order only alerts once.
+let notificationQueue = Promise.resolve();
+function showNotification(data) {
+  const task = notificationQueue.then(async () => {
+    const tag = typeof data.tag === 'string' ? data.tag : 'layane-push';
+    const cache = await caches.open('layane-notifications-v2');
+    const key = new URL('/__notification/' + encodeURIComponent(tag), self.location.origin).href;
+    const isOrder = tag.startsWith('order-');
+    if (isOrder && await cache.match(key)) return;
+    await self.registration.showNotification(data.title || 'طلب جديد في المتجر', {
+      body: data.body || 'وصلك طلب جديد. افتح التطبيق لمعاينة التفاصيل.',
+      icon: '/icon.png', badge: '/icon.png', vibrate: [300, 100, 300],
+      tag, data: {url: '/admin'},
+    });
+    if (isOrder) {
+      await cache.put(key, new Response('shown'));
+      const keys = await cache.keys();
+      await Promise.all(keys.slice(0, Math.max(0, keys.length - 100)).map(key => cache.delete(key)));
     }
-  } catch (e) {
-    console.error('SW background check error:', e);
-  }
+  });
+  notificationQueue = task.catch(() => {});
+  return task;
 }
 
-self.addEventListener('periodicsync', (event) => {
-  if (event.tag === 'check-new-orders') {
-    event.waitUntil(checkNewOrders());
-  }
+self.addEventListener('push', event => {
+  let data = {};
+  try { data = event.data?.json() || {}; } catch {}
+  event.waitUntil(showNotification(data));
 });
 
-self.addEventListener('sync', (event) => {
-  if (event.tag === 'sync-orders') {
-    event.waitUntil(checkNewOrders());
-  }
+self.addEventListener('message', event => {
+  if (event.data?.type !== 'ORDER_NOTIFICATION' || typeof event.data.id !== 'string') return;
+  event.waitUntil(showNotification({
+    title: 'طلب جديد في متجر layane-shop',
+    body: 'وصلك طلب جديد #' + event.data.id.slice(0, 8).toUpperCase() + '. افتح التطبيق لمعاينة التفاصيل.',
+    tag: 'order-' + event.data.id,
+  }));
 });
 
-self.addEventListener('push', (event) => {
-  const data = event.data ? event.data.json() : {};
-  const title = data.title || '🚨 طلب جديد في المتجر!';
-  const options = {
-    body: data.body || 'وصلك طلب جديد، اضغط لمعاينة التفاصيل.',
-    icon: '/icon.png',
-    badge: '/icon.png',
-    vibrate: [300, 100, 300, 100, 300],
-    tag: 'push-order',
-    renotify: true,
-    data: { url: '/admin' }
-  };
-  event.waitUntil(self.registration.showNotification(title, options));
-});
-
-self.addEventListener('notificationclick', (event) => {
+self.addEventListener('notificationclick', event => {
   event.notification.close();
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      for (const client of clientList) {
-        if (client.url.includes('/admin') && 'focus' in client) {
-          return client.focus();
-        }
-      }
-      if (clients.openWindow) {
-        return clients.openWindow('/admin');
-      }
-    })
-  );
+  event.waitUntil((async () => {
+    const windows = await self.clients.matchAll({type: 'window', includeUncontrolled: true});
+    for (const client of windows) {
+      const url = new URL(client.url);
+      if (url.origin === self.location.origin && url.pathname === '/admin') return client.focus();
+    }
+    return self.clients.openWindow('/admin');
+  })());
 });
