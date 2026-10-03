@@ -12,7 +12,7 @@ export function Logo({brand}:any){
           src={brand.logo}
           alt={brand.name || 'layane-shop'}
           className="brandlogo-img"
-          style={{ maxHeight: '38px', maxWidth: '150px', objectFit: 'contain' }}
+          style={{ maxHeight: '38px', maxWidth: '140px', objectFit: 'contain', display: 'block' }}
         />
       ) : (
         <>
@@ -181,7 +181,7 @@ function OrderFormSection({
         <div className="order-summary-card">
           <div className="summary-row">
             <span>{ar ? 'المنتج:' : 'Product:'}</span>
-            <strong>{p.name}</strong>
+            <strong>{p.name && p.name !== 'Untitled product' ? p.name : 'باك الراحة والشفاء الطبيعي'}</strong>
           </div>
           <div className="summary-row">
             <span>{ar ? 'الكمية المختارة:' : 'Quantity:'}</span>
@@ -224,6 +224,7 @@ export function ProductView({page,brand,preview}:any){
   const p=page;
   const ar=p.language==='ar'||!p.language;
   const fr=p.language==='fr';
+  const productName = (!p.name || p.name === 'Untitled product' || p.name === 'Untitled') ? 'باك الراحة والشفاء الطبيعي' : p.name;
 
   useEffect(() => {
     const pixelId = brand?.pixelId || '1116296790985534';
@@ -250,16 +251,16 @@ export function ProductView({page,brand,preview}:any){
       try {
         (window as any).fbq('init', pixelId);
         (window as any).fbq('track', 'PageView');
-        if (p && p.name) {
+        if (productName) {
           (window as any).fbq('track', 'ViewContent', {
-            content_name: p.name,
-            value: p.price,
+            content_name: productName,
+            value: p.price || 249,
             currency: 'MAD'
           });
         }
       } catch {}
     }
-  }, [brand?.pixelId, p]);
+  }, [brand?.pixelId, p, productName]);
 
   function scrollToCheckout() {
     const el = document.getElementById('checkout-form');
@@ -327,7 +328,7 @@ export function ProductView({page,brand,preview}:any){
           slug:p.slug,
           price:p.price,
           shipping:p.shipping,
-          productName:p.name,
+          productName,
           id,
           name:nameVal,
           phone:phoneVal,
@@ -347,11 +348,11 @@ export function ProductView({page,brand,preview}:any){
           (window as any).fbq('track', 'Purchase', {
             value: totalAmount,
             currency: 'MAD',
-            content_name: p.name,
+            content_name: productName,
             num_items: quantity
           });
           (window as any).fbq('track', 'Lead', {
-            content_name: p.name,
+            content_name: productName,
             value: totalAmount,
             currency: 'MAD'
           });
@@ -378,7 +379,7 @@ export function ProductView({page,brand,preview}:any){
     error,
     ar,
     fr,
-    p
+    p: { ...p, name: productName }
   };
 
   return (
@@ -394,8 +395,8 @@ export function ProductView({page,brand,preview}:any){
               className="header-whatsapp-link"
               title="تواصل معنا عبر الواتساب"
             >
-              <MessageCircle size={18} />
-              <span>{brand.phone}</span>
+              <MessageCircle size={16} />
+              <span dir="ltr">{brand.phone}</span>
             </a>
           )}
         </div>
@@ -411,17 +412,17 @@ export function ProductView({page,brand,preview}:any){
               <span>{ar ? 'المنتج الأكثر طلباً وشهرة بالمغرب' : 'Best Selling Product'}</span>
             </div>
 
-            <h1 className="landing-title">{p.name}</h1>
+            <h1 className="landing-title">{productName}</h1>
 
             {p.headline && <p className="landing-headline">{p.headline}</p>}
 
-            <div className="price-tag-wrapper">
-              <span className="current-price">{money(p.price)}</span>
-              {p.comparePrice > p.price && (
+            <div className="price-tag-wrapper" dir="ltr">
+              <span className="current-price">{money(p.price || 249)}</span>
+              {p.comparePrice > (p.price || 249) && (
                 <span className="old-price">{money(p.comparePrice)}</span>
               )}
               <span className="free-shipping-badge">
-                {p.shipping ? `توصيل: ${money(p.shipping)}` : (ar ? 'توصيل مجاني 🚚' : 'Free Shipping')}
+                {p.shipping ? `+${money(p.shipping)}` : (ar ? 'توصيل مجاني 🚚' : 'Free Shipping')}
               </span>
             </div>
 
@@ -429,7 +430,7 @@ export function ProductView({page,brand,preview}:any){
               <div className="main-banner-image-wrap">
                 <img
                   src={firstImage}
-                  alt={p.name}
+                  alt={productName}
                   className="main-banner-image"
                   fetchPriority="high"
                   loading="eager"
@@ -447,7 +448,7 @@ export function ProductView({page,brand,preview}:any){
                 <div key={idx} className="secondary-banner-image-wrap">
                   <img
                     src={imgUrl}
-                    alt={`${p.name} - image ${idx + 2}`}
+                    alt={`${productName} - image ${idx + 2}`}
                     className="secondary-banner-image"
                     loading="lazy"
                     decoding="async"
@@ -496,8 +497,8 @@ export function ProductView({page,brand,preview}:any){
       <div className="sticky-cta-bar">
         <div className="sticky-cta-inner">
           <div className="sticky-price-info">
-            <span className="sticky-title">{p.name}</span>
-            <span className="sticky-price">{money(p.price)}</span>
+            <span className="sticky-title">{productName}</span>
+            <span className="sticky-price">{money(p.price || 249)}</span>
           </div>
           <button className="sticky-cta-button" onClick={scrollToCheckout}>
             <ShoppingBag size={18} />
