@@ -190,6 +190,49 @@
   letter-spacing: 0.5px;
 }
 
+.red-notif-badge {
+  background: #d32f2f !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  font-size: 11px !important;
+  padding: 2px 7px !important;
+  border-radius: 12px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 18px !important;
+  height: 18px !important;
+  box-shadow: 0 2px 8px rgba(211, 47, 47, 0.4) !important;
+}
+
+.bell-badge-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.bell-red-dot {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #d32f2f;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 900;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 2px #fff, 0 2px 6px rgba(211, 47, 47, 0.5);
+  animation: pulseRedDot 1.5s infinite ease-in-out;
+}
+
+@keyframes pulseRedDot {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+
 .brandlogo-img, .brand img, .brandlogo img {
   max-height: 40px !important;
   max-width: 160px !important;

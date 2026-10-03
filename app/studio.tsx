@@ -486,7 +486,6 @@ export default function Studio(){
   const [password, setPassword] = useState('');
   const [loginErr, setLoginErr] = useState('');
 
-  const [prevOrderCount, setPrevOrderCount] = useState<number | null>(null);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [notifGranted, setNotifGranted] = useState(false);
 
@@ -531,19 +530,25 @@ export default function Studio(){
   const reload = useCallback(async (isBackground = false) => {
     try {
       const d = await api();
-      if (d && Array.isArray(d.orders)) {
-        if (prevOrderCount !== null && d.orders.length > prevOrderCount) {
-          const latestOrder = d.orders[0];
-          playNotificationChime();
-          if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-            new Notification(`🚨 طلب جديد #${latestOrder.id.slice(0, 8).toUpperCase()}!`, {
-              body: `الزبون: ${latestOrder.customer} (${latestOrder.city}) • المجموع: ${latestOrder.total} DH`,
-              icon: '/icon.png',
-              badge: '/icon.png'
-            });
+      if (d && Array.isArray(d.orders) && d.orders.length > 0) {
+        const latestOrder = d.orders[0];
+        const lastSeenId = typeof localStorage !== 'undefined' ? localStorage.getItem('layane_last_seen_order') : null;
+
+        if (latestOrder && latestOrder.id !== lastSeenId) {
+          if (lastSeenId) {
+            playNotificationChime();
+            if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+              new Notification(`🚨 طلب جديد #${latestOrder.id.slice(0, 8).toUpperCase()}!`, {
+                body: `الزبون: ${latestOrder.customer} (${latestOrder.city}) • المجموع: ${latestOrder.total} DH`,
+                icon: '/icon.png',
+                badge: '/icon.png'
+              });
+            }
+          }
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('layane_last_seen_order', latestOrder.id);
           }
         }
-        setPrevOrderCount(d.orders.length);
       }
       setData(d);
       setError('');
@@ -554,7 +559,7 @@ export default function Studio(){
         setError(e.message || 'فشل الاتصال بالخادم');
       }
     }
-  }, [prevOrderCount]);
+  }, []);
 
   useEffect(() => {
     reload(false);
@@ -680,6 +685,17 @@ export default function Studio(){
   const activeUser = data.currentAdmin || { name: 'Primary Administrator', username: 'admin', role: 'full' };
 
   const b=data.brand;const pages=data.pages;const allOrders=data.orders;const since=range==='all'?'':new Date(Date.now()-Number(range)*86400000).toISOString();const orders=allOrders.filter((o:any)=>!since||o.created_at>=since);const visits=data.visits.filter((v:any)=>!since||v.day>=since.slice(0,10));const visitCount=visits.reduce((n:number,v:any)=>n+v.count,0);const activeOrders=orders.filter((o:any)=>o.status!=='cancelled');const sales=orders.filter((o:any)=>o.status==='delivered').reduce((n:number,o:any)=>n+o.total,0);const conversion=visitCount?(orders.length/visitCount*100).toFixed(1):'0';const newOrders=allOrders.filter((o:any)=>o.status==='new').length;
+
+  useEffect(() => {
+    if (data && typeof document !== 'undefined') {
+      if (newOrders > 0) {
+        document.title = `🔴 (${newOrders}) ORDERS - layane-shop Studio`;
+      } else {
+        document.title = 'layane-shop Store Studio';
+      }
+    }
+  }, [data, newOrders]);
+
   const visiblePages=pages.filter((p:any)=>(filter==='all'||p.status===filter)&&p.name.toLowerCase().includes(query.toLowerCase()));const visibleOrders=orders.filter((o:any)=>(filter==='all'||o.status===filter)&&[o.customer,o.phone,o.product,o.id].some((v:string)=>v.toLowerCase().includes(query.toLowerCase())));const dateControl=<select className="datefilter" aria-label="Date range" value={range} onChange={e=>setRange(e.target.value)}><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="all">All time</option></select>;
   const performance=<div className="tablewrap"><table><thead><tr><th>Product</th><th>Visits</th><th>Orders</th><th>Conversion</th><th>Sales</th></tr></thead><tbody>{pages.filter((p:any)=>p.status!=='archived').map((p:any)=>{const v=visits.filter((x:any)=>x.page_id===p.id).reduce((n:number,x:any)=>n+x.count,0);const o=orders.filter((x:any)=>x.page_id===p.id);return <tr key={p.id}><td><div className="tableproduct">{p.image?<img src={p.image} alt=""/>:<span className="productplaceholder"><ShoppingBag size={18}/></span>}<span>{p.name}<small>/p/{p.slug}</small></span></div></td><td>{v.toLocaleString()}</td><td>{o.length}</td><td>{v?(o.length/v*100).toFixed(1):0}%</td><td className="strong">{money(o.filter((x:any)=>x.status==='delivered').reduce((n:number,x:any)=>n+o.total,0))}</td></tr>})}</tbody></table></div>;
 
@@ -778,7 +794,9 @@ export default function Studio(){
         <nav>
           {allowedNavs.map(([Icon,label])=>(
             <button key={label} className={tab===label?'selected':''} onClick={()=>navigate(label)}>
-              <Icon size={19}/>{label}{label==='Orders'&&newOrders>0&&<span className="navcount">{newOrders}</span>}
+              <Icon size={19}/>
+              {label}
+              {label==='Orders'&&newOrders>0&&<span className="red-notif-badge">{newOrders}</span>}
             </button>
           ))}
         </nav>
@@ -816,15 +834,18 @@ export default function Studio(){
               </button>
             )}
 
-            <button
-              className="iconbutton"
-              type="button"
-              title={notifGranted ? 'الإشعارات الفورية مفعّلة' : 'تفعيل الإشعارات الفورية على الهاتف'}
-              onClick={requestNotificationPermission}
-              style={{ color: notifGranted ? '#205b44' : '#888' }}
-            >
-              <Bell size={18} />
-            </button>
+            <div className="bell-badge-wrap">
+              <button
+                className="iconbutton"
+                type="button"
+                title={notifGranted ? 'الإشعارات الفورية مفعّلة' : 'تفعيل الإشعارات الفورية'}
+                onClick={requestNotificationPermission}
+                style={{ color: notifGranted ? '#205b44' : '#888' }}
+              >
+                <Bell size={18} />
+              </button>
+              {newOrders > 0 && <span className="bell-red-dot">{newOrders > 9 ? '9+' : newOrders}</span>}
+            </div>
 
             <span className="livebadge"><span/>{activeUser.name} (@{activeUser.username})</span>
             <button className="iconbutton" title="Refresh store data" onClick={()=>reload(false)}><RefreshCw size={17}/></button>
