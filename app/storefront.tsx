@@ -536,7 +536,14 @@ export function ProductView({page,brand,preview}:any){
         <div className="sticky-cta-inner">
           <div className="sticky-price-info">
             <span className="sticky-title">{productName}</span>
-            <span className="sticky-price">{money(p.price ?? 0)}</span>
+            <span className="sticky-price">
+              {money(optionTotal(availableQtyOptions.find((o: any) => o.qty === quantity) || availableQtyOptions[0], p.price ?? 0))}
+              {(p.comparePrice ?? 0) > (p.price ?? 0) && (
+                <small style={{ textDecoration: 'line-through', color: '#9ca3af', fontSize: '12px', marginInlineStart: '6px', fontWeight: '600' }}>
+                  {money(p.comparePrice)}
+                </small>
+              )}
+            </span>
           </div>
           <button className="sticky-cta-button" onClick={scrollToCheckout}>
             <ShoppingBag size={18} />
