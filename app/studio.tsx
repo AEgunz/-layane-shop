@@ -597,6 +597,18 @@ export default function Studio(){
     }
   }, [data, tab]);
 
+  const newOrdersCount = data && Array.isArray(data.orders) ? data.orders.filter((o: any) => o.status === 'new').length : 0;
+
+  useEffect(() => {
+    if (data && typeof window !== 'undefined' && typeof document !== 'undefined') {
+      if (newOrdersCount > 0) {
+        document.title = `🔴 (${newOrdersCount}) ORDERS - layane-shop Studio`;
+      } else {
+        document.title = 'layane-shop Store Studio';
+      }
+    }
+  }, [data, newOrdersCount]);
+
   async function handleLogin(e:any){
     e.preventDefault();
     setBusy(true);
@@ -703,16 +715,6 @@ export default function Studio(){
 
   const b=data.brand;const pages=data.pages;const allOrders=data.orders;const since=range==='all'?'':new Date(Date.now()-Number(range)*86400000).toISOString();const orders=allOrders.filter((o:any)=>!since||o.created_at>=since);const visits=data.visits.filter((v:any)=>!since||v.day>=since.slice(0,10));const visitCount=visits.reduce((n:number,v:any)=>n+v.count,0);const activeOrders=orders.filter((o:any)=>o.status!=='cancelled');const sales=orders.filter((o:any)=>o.status==='delivered').reduce((n:number,o:any)=>n+o.total,0);const conversion=visitCount?(orders.length/visitCount*100).toFixed(1):'0';const newOrders=allOrders.filter((o:any)=>o.status==='new').length;
   const mainHomeId = data.mainHomePageId || (pages.find((p: any) => p.status === 'published')?.id || '');
-
-  useEffect(() => {
-    if (data && typeof window !== 'undefined' && typeof document !== 'undefined') {
-      if (newOrders > 0) {
-        document.title = `🔴 (${newOrders}) ORDERS - layane-shop Studio`;
-      } else {
-        document.title = 'layane-shop Store Studio';
-      }
-    }
-  }, [data, newOrders]);
 
   const visiblePages=pages.filter((p:any)=>(filter==='all'||p.status===filter)&&p.name.toLowerCase().includes(query.toLowerCase()));const visibleOrders=orders.filter((o:any)=>(filter==='all'||o.status===filter)&&[o.customer,o.phone,o.product,o.id].some((v:string)=>v.toLowerCase().includes(query.toLowerCase())));const dateControl=<select className="datefilter" aria-label="Date range" value={range} onChange={e=>setRange(e.target.value)}><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="all">All time</option></select>;
   const performance=<div className="tablewrap"><table><thead><tr><th>Product</th><th>Visits</th><th>Orders</th><th>Conversion</th><th>Sales</th></tr></thead><tbody>{pages.filter((p:any)=>p.status!=='archived').map((p:any)=>{const v=visits.filter((x:any)=>x.page_id===p.id).reduce((n:number,x:any)=>n+x.count,0);const o=orders.filter((x:any)=>x.page_id===p.id);return <tr key={p.id}><td><div className="tableproduct">{p.image?<img src={p.image} alt=""/>:<span className="productplaceholder"><ShoppingBag size={18}/></span>}<span>{p.name}<small>/p/{p.slug}</small></span></div></td><td>{v.toLocaleString()}</td><td>{o.length}</td><td>{v?(o.length/v*100).toFixed(1):0}%</td><td className="strong">{money(o.filter((x:any)=>x.status==='delivered').reduce((n:number,x:any)=>n+o.total,0))}</td></tr>})}</tbody></table></div>;
