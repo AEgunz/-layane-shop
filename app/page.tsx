@@ -36,18 +36,29 @@ export default async function Page() {
       }
     } catch {}
 
-    let row: any = null;
-    if (targetPageId) {
-      row = await db().prepare("SELECT id, data FROM pages WHERE id=? AND status='published'").bind(targetPageId).first<{ id: string; data: string }>();
-    }
-    if (!row) {
-      row = await db().prepare("SELECT id, data FROM pages WHERE status='published' ORDER BY rowid DESC").first<{ id: string; data: string }>();
-    }
+    const allPagesRes = await db().prepare("SELECT id, slug, data FROM pages WHERE status='published'").all<{ id: string; slug: string; data: string }>();
+    const pagesList = (allPagesRes?.results || []).map((r: any) => {
+      try {
+        const d = typeof r.data === 'string' ? JSON.parse(r.data) : r.data;
+        return { id: r.id || d?.id, slug: r.slug || d?.slug, data: d };
+      } catch {
+        return null;
+      }
+    }).filter((x: any) => x && x.data);
 
-    if (row && row.data) {
-      const parsed = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
-      if (parsed) {
-        pageData = parsed;
+    if (pagesList.length > 0) {
+      let chosen: any = null;
+      if (targetPageId) {
+        chosen = pagesList.find((p: any) => p.id === targetPageId || p.data?.id === targetPageId);
+      }
+      if (!chosen) {
+        chosen = pagesList.find((p: any) => p.id !== 'default-product' && p.slug !== 'home' && p.data?.id !== 'default-product');
+      }
+      if (!chosen) {
+        chosen = pagesList[pagesList.length - 1];
+      }
+      if (chosen && chosen.data) {
+        pageData = chosen.data;
       }
     }
   } catch {}
