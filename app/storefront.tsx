@@ -228,9 +228,10 @@ export function ProductView({page,brand,preview}:any){
   const productName = (!p.name || p.name === 'Untitled product' || p.name === 'Untitled') ? 'باك الراحة والشفاء الطبيعي' : p.name;
 
   const defaultBannerImage = '/assets/bundle.png';
-  const firstImage = (p.images && p.images.length > 0 ? p.images[0] : p.image) || defaultBannerImage;
-  const remainingImages = (p.images && p.images.length > 1) ? p.images.slice(1) : ['/assets/brace.png', '/assets/balm.png'];
-  const reviewsBannerImage = p.reviewsImage || '/assets/faq.png';
+  const hasUploadedImages = Array.isArray(p.images) && p.images.length > 0;
+  const firstImage = hasUploadedImages ? p.images[0] : (p.image || defaultBannerImage);
+  const remainingImages = hasUploadedImages ? p.images.slice(1) : [];
+  const reviewsBannerImage = p.reviewsImage || '';
 
   useEffect(() => {
     const pixelId = brand?.pixelId || '1116296790985534';

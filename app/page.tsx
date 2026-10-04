@@ -33,16 +33,12 @@ export default async function Page() {
       const parsed = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
       if (parsed) {
         pageData = {
-          ...defaultPage,
           ...parsed,
           name: (!parsed.name || parsed.name === 'Untitled product' || parsed.name === 'Untitled') ? 'باك الراحة والشفاء الطبيعي' : parsed.name,
-          image: parsed.image || '/assets/bundle.png',
-          images: (parsed.images && parsed.images.length > 0) ? parsed.images : ['/assets/bundle.png', '/assets/brace.png', '/assets/balm.png'],
-          reviewsImage: parsed.reviewsImage || '/assets/faq.png'
+          images: Array.isArray(parsed.images) ? parsed.images : (parsed.image ? [parsed.image] : []),
+          image: parsed.image || (Array.isArray(parsed.images) && parsed.images.length > 0 ? parsed.images[0] : '/assets/bundle.png'),
+          reviewsImage: parsed.reviewsImage || ''
         };
-        try {
-          await db().prepare("UPDATE pages SET data=? WHERE id=?").bind(JSON.stringify(pageData), row.id).run();
-        } catch {}
       }
     }
   } catch {}
