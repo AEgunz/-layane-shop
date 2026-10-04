@@ -28,14 +28,14 @@ export default async function Page() {
   let brandData: any = defaultBrand;
 
   try {
-    const row = await db().prepare("SELECT id, data FROM pages WHERE status='published' ORDER BY rowid ASC").first<{ id: string; data: string }>();
+    const row = await db().prepare("SELECT id, data FROM pages WHERE status='published' ORDER BY rowid DESC").first<{ id: string; data: string }>();
     if (row && row.data) {
       const parsed = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
       if (parsed) {
         pageData = {
           ...parsed,
           name: (!parsed.name || parsed.name === 'Untitled product' || parsed.name === 'Untitled') ? 'باك الراحة والشفاء الطبيعي' : parsed.name,
-          images: Array.isArray(parsed.images) ? parsed.images : (parsed.image ? [parsed.image] : []),
+          images: Array.isArray(parsed.images) && parsed.images.length > 0 ? parsed.images : (parsed.image ? [parsed.image] : []),
           image: parsed.image || (Array.isArray(parsed.images) && parsed.images.length > 0 ? parsed.images[0] : '/assets/bundle.png'),
           reviewsImage: parsed.reviewsImage || ''
         };
