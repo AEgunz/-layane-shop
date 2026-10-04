@@ -97,7 +97,7 @@ function OrderFormSection({
       </div>
 
       <form onSubmit={order} autoComplete="on">
-        <p className="website-field"><label>Website<input name="website" tabIndex={-1} autoComplete="off"/></label></p>
+        <input type="text" name="website" tabIndex={-1} autoComplete="off" style={{ display: 'none' }} aria-hidden="true" />
 
         {error && <div className="form-error-alert"><X size={16} />{error}</div>}
 
@@ -385,24 +385,6 @@ export function ProductView({page,brand,preview}:any){
 
   return (
     <div className={`storefront-wrapper ${ar ? 'rtl-dir' : 'ltr-dir'}`} dir={ar ? 'rtl' : 'ltr'}>
-      <header className="storefront-header">
-        <div className="storefront-header-inner">
-          <Logo brand={brand} />
-          {brand.phone && (
-            <a
-              href={`https://wa.me/${brand.phone.replace(/[^0-9]/g, '')}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="header-whatsapp-link"
-              title="تواصل معنا عبر الواتساب"
-            >
-              <MessageCircle size={16} />
-              <span style={{ unicodeBidi: 'plaintext', direction: 'ltr' }}>06 60 28 64 62</span>
-            </a>
-          )}
-        </div>
-      </header>
-
       {p.customHtml ? (
         <div className="custom-html-landing" dangerouslySetInnerHTML={{ __html: p.customHtml }} />
       ) : (

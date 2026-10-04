@@ -233,6 +233,28 @@
   50% { transform: scale(1.2); }
 }
 
+.storefront-wrapper,
+.storefront-wrapper *,
+.storefront-wrapper input,
+.storefront-wrapper button,
+.storefront-wrapper label,
+.storefront-wrapper select,
+.storefront-wrapper textarea,
+.landing-title,
+.landing-headline,
+.orderbox,
+.orderbox h3,
+.orderbox input,
+.orderbox label,
+.orderbox button {
+  font-family: 'Cairo', 'Tajawal', 'Changa', 'Alexandria', system-ui, -apple-system, sans-serif !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  font-family: 'Cairo', 'Tajawal', 'Changa', 'Alexandria', system-ui, -apple-system, sans-serif !important;
+}
+
 /* =========================================================
    PERFECTLY CENTERED MOBILE & PC COD STOREFRONT CSS
    ========================================================= */
