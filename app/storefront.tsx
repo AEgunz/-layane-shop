@@ -129,32 +129,30 @@ function OrderFormSection({
           />
         </div>
 
-        <div className="form-grid-2">
-          <div className="form-group">
-            <label><MapPin size={16} /> {ar ? 'المدينة' : 'City'} <span className="required">*</span></label>
-            <input
-              name="city"
-              required
-              maxLength={100}
-              placeholder={ar ? 'مثال: الدار البيضاء، الرباط…' : 'e.g. Casablanca'}
-              value={formState.city}
-              onChange={e => setFormState({ ...formState, city: e.target.value })}
-              autoComplete="address-level2"
-            />
-          </div>
+        <div className="form-group">
+          <label><MapPin size={16} /> {ar ? 'المدينة' : 'City'} <span className="required">*</span></label>
+          <input
+            name="city"
+            required
+            maxLength={100}
+            placeholder={ar ? 'مثال: الدار البيضاء، الرباط…' : 'e.g. Casablanca'}
+            value={formState.city}
+            onChange={e => setFormState({ ...formState, city: e.target.value })}
+            autoComplete="address-level2"
+          />
+        </div>
 
-          <div className="form-group">
-            <label><MapPin size={16} /> {ar ? 'العنوان السكني' : 'Address'} <span className="required">*</span></label>
-            <input
-              name="address"
-              required
-              maxLength={500}
-              placeholder={ar ? 'مثال: الحي، الشارع، رقم المنزل' : 'Street name & house number'}
-              value={formState.address}
-              onChange={e => setFormState({ ...formState, address: e.target.value })}
-              autoComplete="street-address"
-            />
-          </div>
+        <div className="form-group">
+          <label><MapPin size={16} /> {ar ? 'العنوان السكني الكامل' : 'Full Delivery Address'} <span className="required">*</span></label>
+          <input
+            name="address"
+            required
+            maxLength={500}
+            placeholder={ar ? 'مثال: الحي، الشارع، رقم المنزل، العمارة أو الشقة…' : 'Street name, neighborhood, house/apartment number'}
+            value={formState.address}
+            onChange={e => setFormState({ ...formState, address: e.target.value })}
+            autoComplete="street-address"
+          />
         </div>
 
         <div className="quantity-selection-box">
