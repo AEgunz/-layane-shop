@@ -28,7 +28,20 @@ export default async function Page() {
   let brandData: any = defaultBrand;
 
   try {
-    const row = await db().prepare("SELECT id, data FROM pages WHERE status='published' ORDER BY rowid DESC").first<{ id: string; data: string }>();
+    let targetPageId = '';
+    try {
+      const mainHomeSetting = await db().prepare("SELECT value FROM settings WHERE key='main_home_page_id'").first<{ value: string }>();
+      if (mainHomeSetting && mainHomeSetting.value) targetPageId = mainHomeSetting.value;
+    } catch {}
+
+    let row: any = null;
+    if (targetPageId) {
+      row = await db().prepare("SELECT id, data FROM pages WHERE id=? AND status='published'").bind(targetPageId).first<{ id: string; data: string }>();
+    }
+    if (!row) {
+      row = await db().prepare("SELECT id, data FROM pages WHERE status='published' ORDER BY rowid DESC").first<{ id: string; data: string }>();
+    }
+
     if (row && row.data) {
       const parsed = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
       if (parsed) {

@@ -40,6 +40,7 @@ export async function GET(){
     let adminsList: any[] = [];
     let userPerms = ['Overview', 'Landing pages', 'Orders', 'Analytics', 'Brand settings'];
     let currentAdmin = { name: 'Primary Administrator', username: 'admin', role: 'full' };
+    let mainHomePageId = '';
 
     try { pages = await db().prepare('SELECT data FROM pages ORDER BY rowid DESC').all<{data:string}>(); } catch {}
     try { orders = await db().prepare('SELECT * FROM orders ORDER BY created_at DESC').all(); } catch {}
@@ -48,6 +49,10 @@ export async function GET(){
     try { adminsList = await getAdmins(); } catch {}
     try { userPerms = await getSessionPermissions(); } catch {}
     try { currentAdmin = await getCurrentAdminInfo(); } catch {}
+    try {
+      const mainSetting = await db().prepare("SELECT value FROM settings WHERE key='main_home_page_id'").first<{ value: string }>();
+      if (mainSetting && mainSetting.value) mainHomePageId = mainSetting.value;
+    } catch {}
 
     return Response.json({
       pages: (pages?.results || []).map((p: any) => {
@@ -59,6 +64,7 @@ export async function GET(){
       admins: adminsList,
       permissions: userPerms,
       currentAdmin,
+      mainHomePageId,
       user: user.displayName
     },{headers:{'Cache-Control':'no-store'}});
   }catch(e){
@@ -75,6 +81,19 @@ export async function POST(r:Request){
     if(x.action==='page'){
       const p=pageSchema.parse(x.page);
       await db().prepare('INSERT INTO pages(id,slug,status,data) VALUES(?,?,?,?) ON CONFLICT(id) DO UPDATE SET slug=excluded.slug,status=excluded.status,data=excluded.data').bind(p.id,p.slug,p.status,JSON.stringify(p)).run();
+      return Response.json({ok:true});
+    }
+
+    if(x.action==='set_main_home'){
+      const {id} = z.object({id:z.string()}).parse(x);
+      await db().prepare("DELETE FROM settings WHERE key=?").bind('main_home_page_id').run();
+      await db().prepare("INSERT INTO settings(key,value) VALUES(?,?)").bind('main_home_page_id', id).run();
+      return Response.json({ok:true});
+    }
+
+    if(x.action==='delete_page'){
+      const {id} = z.object({id:z.string()}).parse(x);
+      await db().prepare("DELETE FROM pages WHERE id=?").bind(id).run();
       return Response.json({ok:true});
     }
 

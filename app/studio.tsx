@@ -2,8 +2,8 @@
 import {useState,useEffect,useCallback} from 'react';
 import {LayoutDashboard,PanelsTopLeft,ShoppingBag,ChartNoAxesCombined,Settings,Plus,Leaf,ArrowUpRight,Globe,MousePointer2,Wallet,Search,ChevronDown,Download,ExternalLink,Copy,Pencil,X,Monitor,Smartphone,Check,Archive,RefreshCw,ImagePlus,ArrowLeft,ArrowRight,Eye,ShieldCheck,Upload,LogOut,Lock,MessageCircle,Trash2,Bell} from 'lucide-react';
 import {Logo,ProductView} from './storefront';
+import {enablePush} from '@/lib/push-client';
 import JSZip from 'jszip';
-import {enablePush, disablePush, showOrderNotification, updateOrderBadge} from '@/lib/push-client';
 
 const money=(n:number)=>new Intl.NumberFormat('en-MA',{maximumFractionDigits:2}).format(n)+' DH';
 const niceDate=(s:string)=>new Date(s).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'Africa/Casablanca'});
@@ -478,7 +478,7 @@ function AdminManager({ admins, onReload }: any) {
           </div>
 
           <button type="submit" className="primary" disabled={busy} style={{ height: '42px', padding: '0 24px' }}>
-            {busy ? 'Saving…' : 'إضافة المشرف وتفعيل الصلاحيات (Add Admin)'}
+            {busy ? 'Saving…' : 'إضافة المشرف وتحديد الصلاحيات (Add Admin)'}
           </button>
         </form>
       </div>
@@ -506,6 +506,7 @@ export default function Studio(){
 
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [notifGranted, setNotifGranted] = useState(false);
+  const [notifBusy, setNotifBusy] = useState(false);
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
@@ -519,8 +520,6 @@ export default function Studio(){
     window.addEventListener('beforeinstallprompt', handlePrompt);
     return () => window.removeEventListener('beforeinstallprompt', handlePrompt);
   }, []);
-
-  const [notifBusy, setNotifBusy] = useState(false);
 
   async function requestNotificationPermission() {
     setNotifBusy(true);
@@ -558,14 +557,16 @@ export default function Studio(){
           if (lastSeenId) {
             playNotificationChime();
             if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-              showOrderNotification(latestOrder.id).catch(() => {});
+              new Notification(`🚨 طلب جديد #${latestOrder.id.slice(0, 8).toUpperCase()}!`, {
+                body: `الزبون: ${latestOrder.customer} (${latestOrder.city}) • المجموع: ${latestOrder.total} DH`,
+                icon: '/icon.png',
+                badge: '/icon.png'
+              });
             }
           }
           safeLocalStorageSet('layane_last_seen_order', latestOrder.id);
         }
       }
-      // An empty store still establishes a baseline, so its first order alerts.
-      if (d && Array.isArray(d.orders) && !d.orders.length) safeLocalStorageSet('layane_last_seen_order', '__empty__');
       setData(d);
       setError('');
       setLoginErr('');
@@ -623,8 +624,6 @@ export default function Studio(){
 
   async function handleLogout(){
     try {
-      if ('serviceWorker' in navigator) await disablePush();
-      setNotifGranted(false);
       await fetch('/api/public', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -633,7 +632,7 @@ export default function Studio(){
       document.cookie = 'admin_session=; path=/; max-age=0; SameSite=Lax';
       setData(null);
       setError('AUTH');
-    } catch (e) { setError(e instanceof Error ? e.message : 'تعذر تسجيل الخروج'); }
+    } catch {}
   }
 
   function navigate(t:string){
@@ -655,21 +654,6 @@ export default function Studio(){
   async function duplicate(p:any){const id=crypto.randomUUID();const cp={...p,id,slug:p.slug+'-'+id.slice(0,5),name:p.name+' (copy)',status:'draft',createdAt:new Date().toISOString()};const result=await save({action:'page',page:cp},'Page duplicated as a draft.');if(result){setEditor(cp)}}
   function newPage(){const id=crypto.randomUUID();setEditor({id,name:'Untitled product',slug:'product-'+id.slice(0,8),price:199,comparePrice:0,shipping:0,status:'draft',template:'editorial',language:'ar',headline:'',description:'',image:'',images:[],reviewsImage:'',customHtml:'',benefits:'',cta:'اطلب الآن',sections:[],faq:[],createdAt:new Date().toISOString()});setTab('Landing pages')}
   function exportOrders(rows:any[]){const fields=['id','customer','phone','city','address','product','quantity','unit_price','shipping','total','status','created_at','notes'];const cell=(x:any)=>'"'+String(x??'').replace(/^[=+@-]/,"'$&").replaceAll('"','""')+'"';const csv='\uFEFF'+[fields.join(','),...rows.map(o=>fields.map(k=>cell(o[k])).join(','))].join('\r\n');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));const a=document.createElement('a');a.href=url;a.download='layane-shop-orders.csv';a.click();URL.revokeObjectURL(url)}
-
-  const newOrders = (data?.orders ?? []).filter((o: { status: string }) => o.status === 'new').length;
-
-  useEffect(() => {
-    // Wait for session loading; clear the installed app badge on sign-out.
-    if (data) void updateOrderBadge(canReceiveOrders ? newOrders : 0);
-    else if (error === 'AUTH') void updateOrderBadge(0);
-  }, [data, newOrders, canReceiveOrders, error]);
-
-  // Keep this hook before the login return so every render uses the same hooks.
-  useEffect(() => {
-    document.title = newOrders > 0
-      ? `🔴 (${newOrders}) ORDERS - layane-shop Studio`
-      : 'layane-shop Store Studio';
-  }, [newOrders]);
 
   if (!data) {
     return (
@@ -717,7 +701,18 @@ export default function Studio(){
   const allowedNavs = navs.filter(([_, label]) => userPerms.includes(label));
   const activeUser = data.currentAdmin || { name: 'Primary Administrator', username: 'admin', role: 'full' };
 
-  const b=data.brand;const pages=data.pages;const allOrders=data.orders;const since=range==='all'?'':new Date(Date.now()-Number(range)*86400000).toISOString();const orders=allOrders.filter((o:any)=>!since||o.created_at>=since);const visits=data.visits.filter((v:any)=>!since||v.day>=since.slice(0,10));const visitCount=visits.reduce((n:number,v:any)=>n+v.count,0);const activeOrders=orders.filter((o:any)=>o.status!=='cancelled');const sales=orders.filter((o:any)=>o.status==='delivered').reduce((n:number,o:any)=>n+o.total,0);const conversion=visitCount?(orders.length/visitCount*100).toFixed(1):'0';
+  const b=data.brand;const pages=data.pages;const allOrders=data.orders;const since=range==='all'?'':new Date(Date.now()-Number(range)*86400000).toISOString();const orders=allOrders.filter((o:any)=>!since||o.created_at>=since);const visits=data.visits.filter((v:any)=>!since||v.day>=since.slice(0,10));const visitCount=visits.reduce((n:number,v:any)=>n+v.count,0);const activeOrders=orders.filter((o:any)=>o.status!=='cancelled');const sales=orders.filter((o:any)=>o.status==='delivered').reduce((n:number,o:any)=>n+o.total,0);const conversion=visitCount?(orders.length/visitCount*100).toFixed(1):'0';const newOrders=allOrders.filter((o:any)=>o.status==='new').length;
+  const mainHomeId = data.mainHomePageId || (pages.find((p: any) => p.status === 'published')?.id || '');
+
+  useEffect(() => {
+    if (data && typeof window !== 'undefined' && typeof document !== 'undefined') {
+      if (newOrders > 0) {
+        document.title = `🔴 (${newOrders}) ORDERS - layane-shop Studio`;
+      } else {
+        document.title = 'layane-shop Store Studio';
+      }
+    }
+  }, [data, newOrders]);
 
   const visiblePages=pages.filter((p:any)=>(filter==='all'||p.status===filter)&&p.name.toLowerCase().includes(query.toLowerCase()));const visibleOrders=orders.filter((o:any)=>(filter==='all'||o.status===filter)&&[o.customer,o.phone,o.product,o.id].some((v:string)=>v.toLowerCase().includes(query.toLowerCase())));const dateControl=<select className="datefilter" aria-label="Date range" value={range} onChange={e=>setRange(e.target.value)}><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="all">All time</option></select>;
   const performance=<div className="tablewrap"><table><thead><tr><th>Product</th><th>Visits</th><th>Orders</th><th>Conversion</th><th>Sales</th></tr></thead><tbody>{pages.filter((p:any)=>p.status!=='archived').map((p:any)=>{const v=visits.filter((x:any)=>x.page_id===p.id).reduce((n:number,x:any)=>n+x.count,0);const o=orders.filter((x:any)=>x.page_id===p.id);return <tr key={p.id}><td><div className="tableproduct">{p.image?<img src={p.image} alt=""/>:<span className="productplaceholder"><ShoppingBag size={18}/></span>}<span>{p.name}<small>/p/{p.slug}</small></span></div></td><td>{v.toLocaleString()}</td><td>{o.length}</td><td>{v?(o.length/v*100).toFixed(1):0}%</td><td className="strong">{money(o.filter((x:any)=>x.status==='delivered').reduce((n:number,x:any)=>n+o.total,0))}</td></tr>})}</tbody></table></div>;
@@ -750,20 +745,8 @@ export default function Studio(){
                   href={getWhatsAppUrl(o.phone)}
                   target="_blank"
                   rel="noopener noreferrer"
+                  className="whatsapp-chat-btn"
                   title="Tawasol via WhatsApp"
-                  style={{
-                    color:'#15803d',
-                    fontWeight:'800',
-                    display:'inline-flex',
-                    alignItems:'center',
-                    gap:'6px',
-                    background:'#eefbf2',
-                    padding:'5px 12px',
-                    borderRadius:'20px',
-                    fontSize:'13px',
-                    border:'1px solid #bbf7d0',
-                    textDecoration:'none'
-                  }}
                   onClick={(e)=>e.stopPropagation()}
                 >
                   <MessageCircle size={15}/>
@@ -802,7 +785,6 @@ export default function Studio(){
   ):<Empty title={query||filter!=='all'?'No matching orders':'Your next order starts here'} text={query||filter!=='all'?'Try another search or status.':'Orders from all your landing pages will appear here.'} action={!query&&filter==='all'&&userPerms.includes('Landing pages')&&<button onClick={()=>navigate('Landing pages')}>Manage landing pages</button>}/>;
 
   const metrics=<div className="stats">{[[Wallet,'Total sales',money(sales),'Delivered orders only'],[ShoppingBag,'Total orders',orders.length.toLocaleString(),`${newOrders} awaiting confirmation`],[MousePointer2,'Page visits',visitCount.toLocaleString(),'Unique page sessions per day'],[ChartNoAxesCombined,'Conversion rate',conversion+'%','Orders ÷ page visits']].map(([Icon,label,value,hint]:any)=><div className="stat" key={label}><div><span>{label}</span><span className="statIcon"><Icon size={18}/></span></div><strong>{value}</strong><small>{hint}</small></div>)}</div>;
-  const mainHomeSlug = pages.find((p: any) => p.status === 'published')?.slug;
 
   return (
     <div className="studio" style={{'--brand':b.color} as any}>
@@ -958,28 +940,58 @@ export default function Studio(){
                   <div className="search"><Search size={17}/><input aria-label="Search pages" placeholder="Search your pages…" value={query} onChange={e=>setQuery(e.target.value)}/></div>
                 </div>
                 <div className="pagegrid">
-                  {visiblePages.map((p:any)=>(
-                    <article className="pagecard" key={p.id}>
-                      <div className={'pagecover '+p.template}>
-                        {p.image?<img src={p.image} alt={p.name}/>:<div className="blankcover"><Leaf size={40}/><strong>{b.name}</strong></div>}
-                        <div style={{position:'absolute',top:'14px',left:'14px',display:'flex',gap:'6px',flexWrap:'wrap'}}>
-                          <Badge status={p.status}/>
-                          {p.slug===mainHomeSlug&&<span className="pill" style={{background:'#205b44',color:'#fff',fontWeight:'800'}}>Main Homepage</span>}
+                  {visiblePages.map((p:any)=>{
+                    const isMainHome = p.id === mainHomeId;
+                    return (
+                      <article className="pagecard" key={p.id}>
+                        <div className={'pagecover '+p.template}>
+                          {p.image?<img src={p.image} alt={p.name}/>:(p.images&&p.images[0]?<img src={p.images[0]} alt={p.name}/>:<div className="blankcover"><Leaf size={40}/><strong>{b.name}</strong></div>)}
+                          <div style={{position:'absolute',top:'14px',left:'14px',display:'flex',gap:'6px',flexWrap:'wrap'}}>
+                            <Badge status={p.status}/>
+                            {isMainHome&&<span className="pill" style={{background:'#205b44',color:'#fff',fontWeight:'800'}}>⭐ الصفحة الرئيسية (Main Homepage)</span>}
+                          </div>
                         </div>
-                      </div>
-                      <div className="pageinfo">
-                        <h2>{p.name}</h2>
-                        <div className="pageurl">/p/{p.slug}<button className="iconbutton" title="Copy page URL" onClick={async()=>{try{await navigator.clipboard.writeText(location.origin+'/p/'+p.slug);setToast('Page URL copied.')}catch{setToast('Your page URL is /p/'+p.slug)}}}><Copy size={14}/></button></div>
-                        <div className="pagestats"><span><strong>{money(p.price)}</strong><small>Price</small></span><span><strong>{allOrders.filter((o:any)=>o.page_id===p.id).length}</strong><small>Orders</small></span><span><strong>{data.visits.filter((v:any)=>v.page_id===p.id).reduce((n:number,v:any)=>n+v.count,0)}</strong><small>Visits</small></span></div>
-                        <div className="pageactions">
-                          <button onClick={()=>{setEditor({...p});setTab('Landing pages')}}><Pencil size={15}/>Edit page</button>
-                          {p.status==='published'&&<a className="button iconbutton" href={'/p/'+p.slug} target="_blank" rel="noreferrer" title="View published page"><ExternalLink size={16}/></a>}
-                          <button className="iconbutton" title="Duplicate page" disabled={busy} onClick={()=>duplicate(p)}><Copy size={16}/></button>
-                          <button className="iconbutton" title={p.status==='archived'?'Restore draft':'Archive page'} disabled={busy} onClick={()=>{if(p.status==='archived'||window.confirm('Archive this page? Its URL will stop accepting orders. Existing orders will remain.'))save({action:'page',page:{...p,status:p.status==='archived'?'draft':'archived'}},p.status==='archived'?'Page restored as draft.':'Page archived.')}}><Archive size={16}/></button>
+                        <div className="pageinfo">
+                          <h2>{p.name}</h2>
+                          <div className="pageurl">/p/{p.slug}<button className="iconbutton" title="Copy page URL" onClick={async()=>{try{await navigator.clipboard.writeText(location.origin+'/p/'+p.slug);setToast('Page URL copied.')}catch{setToast('Your page URL is /p/'+p.slug)}}}><Copy size={14}/></button></div>
+                          <div className="pagestats"><span><strong>{money(p.price)}</strong><small>Price</small></span><span><strong>{allOrders.filter((o:any)=>o.page_id===p.id).length}</strong><small>Orders</small></span><span><strong>{data.visits.filter((v:any)=>v.page_id===p.id).reduce((n:number,v:any)=>n+v.count,0)}</strong><small>Visits</small></span></div>
+                          <div className="pageactions" style={{flexWrap:'wrap',gap:'6px'}}>
+                            <button onClick={()=>{setEditor({...p});setTab('Landing pages')}}><Pencil size={15}/>Edit page</button>
+
+                            {p.status==='published'&&!isMainHome&&(
+                              <button
+                                type="button"
+                                title="جعل هذه الصفحة هي الصفحة الرئيسية للموقع"
+                                disabled={busy}
+                                onClick={()=>save({action:'set_main_home',id:p.id},'تم تعيين هذه الصفحة كصفحة رئيسية للموقع بنجاح!')}
+                                style={{background:'#f0fdf4',color:'#15803d',border:'1px solid #bbf7d0',fontWeight:'700'}}
+                              >
+                                ⭐ جعلها رئيسية
+                              </button>
+                            )}
+
+                            {p.status==='published'&&<a className="button iconbutton" href={'/p/'+p.slug} target="_blank" rel="noreferrer" title="View published page"><ExternalLink size={16}/></a>}
+                            <button className="iconbutton" title="Duplicate page" disabled={busy} onClick={()=>duplicate(p)}><Copy size={16}/></button>
+                            <button className="iconbutton" title={p.status==='archived'?'Restore draft':'Archive page'} disabled={busy} onClick={()=>{if(p.status==='archived'||window.confirm('Archive this page? Its URL will stop accepting orders.'))save({action:'page',page:{...p,status:p.status==='archived'?'draft':'archived'}},p.status==='archived'?'Page restored as draft.':'Page archived.')}}><Archive size={16}/></button>
+                            <button
+                              className="iconbutton"
+                              type="button"
+                              title="حذف الصفحة نهائياً (Delete Page)"
+                              disabled={busy}
+                              onClick={()=>{
+                                if(window.confirm('هل أنت أخير ومحقق من رغبتك في حذف صفحة الهبوط هذه نهائياً؟')){
+                                  save({action:'delete_page',id:p.id},'تم حذف صفحة الهبوط نهائياً.');
+                                }
+                              }}
+                              style={{color:'#d32f2f'}}
+                            >
+                              <Trash2 size={16}/>
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    </article>
-                  ))}
+                      </article>
+                    );
+                  })}
                   <button className="newpagecard" onClick={()=>newPage()}>
                     <span><Plus size={26}/></span>
                     <strong>Your next bestseller</strong>
@@ -1024,6 +1036,7 @@ export default function Studio(){
                           <ImageField label="Global logo" value={(branding||b).logo} onChange={(logo:string)=>setBranding({...branding||b,logo})}/>
                           <label>Brand color<div className="colorinput"><input aria-label="Choose brand color" type="color" value={(branding||b).color} onChange={e=>setBranding({...branding||b,color:e.target.value})}/><input pattern="#[a-fA-F0-9]{6}" value={(branding||b).color} onChange={e=>setBranding({...branding||b,color:e.target.value})}/></div></label>
                           <label>Customer support phone<input value={(branding||b).phone} onChange={e=>setBranding({...branding||b,phone:e.target.value})} placeholder="+212 …"/></label>
+                          <label>Meta Facebook Pixel ID<input value={(branding||b).pixelId||'1116296790985534'} onChange={e=>setBranding({...branding||b,pixelId:e.target.value})} placeholder="1116296790985534" dir="ltr"/><small style={{color:'#205b44',fontWeight:'700'}}>Pixel ID: 1116296790985534 مفعّل لتتبع الزيارات والطلبات إعلانات الفيسبوك والانستغرام</small></label>
                           <label>Currency<input value="Moroccan dirham (MAD / DH)" disabled/></label>
                         </div>
                         <div className="panelfoot"><button className="primary" disabled={busy}>{busy?'Saving…':'Save brand settings'}</button></div>
@@ -1076,22 +1089,11 @@ export default function Studio(){
                   href={getWhatsAppUrl(detail.phone)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{
-                    display:'inline-flex',
-                    alignItems:'center',
-                    gap:'8px',
-                    background:'#25D366',
-                    color:'#fff',
-                    padding:'10px 18px',
-                    borderRadius:'25px',
-                    fontWeight:'800',
-                    fontSize:'14px',
-                    marginBottom:'12px',
-                    textDecoration:'none'
-                  }}
+                  className="whatsapp-chat-btn"
+                  style={{ background: '#25D366', color: '#fff', padding: '10px 18px', fontSize: '14px', marginBottom: '12px' }}
                 >
-                  <MessageCircle size={18}/>
-                  WhatsApp: <span dir="ltr">{detail.phone}</span>
+                  <MessageCircle size={18} />
+                  <span>تواصل واتساب: <strong dir="ltr">{detail.phone}</strong></span>
                 </a>
                 <p>{detail.address}<br/>{detail.city}</p>
               </div>
