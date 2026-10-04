@@ -234,30 +234,73 @@
 }
 
 /* =========================================================
-   PERFECTLY PROPORTIONED MOBILE COD STOREFRONT CSS
+   PERFECTLY CENTERED MOBILE & PC COD STOREFRONT CSS
    ========================================================= */
 
 .storefront-wrapper {
   width: 100% !important;
   max-width: 100% !important;
-  overflow-x: hidden !important;
+  margin: 0 auto !important;
+  padding: 0 !important;
   box-sizing: border-box !important;
-  background: #f8fafa !important;
+  background: #f8fafc !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+}
+
+.storefront-header {
+  width: 100% !important;
+  background: #ffffff !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  padding: 10px 16px !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 100 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+  box-sizing: border-box !important;
+}
+
+.storefront-header-inner {
+  max-width: 580px !important;
+  margin: 0 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 .storefront-main {
   width: 100% !important;
-  max-width: 540px !important;
+  max-width: 580px !important;
   margin: 0 auto !important;
-  padding: 0 12px 30px 12px !important;
+  padding: 0 16px 40px 16px !important;
   box-sizing: border-box !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+}
+
+.hero-landing-section,
+.orderbox,
+.animated-orderbox,
+.trust-cards-grid,
+.reviews-image-card,
+.product-description-card,
+.product-benefits-card,
+.additional-images-grid {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
 }
 
 .hero-landing-section {
   text-align: center !important;
   padding: 10px 0 6px 0 !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
 }
 
 .product-title-badge {
@@ -340,9 +383,6 @@
 }
 
 .animated-orderbox, .orderbox {
-  width: 100% !important;
-  max-width: 100% !important;
-  box-sizing: border-box !important;
   background: #ffffff !important;
   border: 2px solid #205b44 !important;
   border-radius: 14px !important;
@@ -609,63 +649,114 @@
   margin: 0 !important;
 }
 
+.storefront-footer {
+  width: 100% !important;
+  background: #f1f5f9 !important;
+  color: #475569 !important;
+  padding: 24px 16px 100px 16px !important;
+  border-top: 1px solid #e2e8f0 !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  justify-content: center !important;
+}
+
+.footer-content {
+  width: 100% !important;
+  max-width: 580px !important;
+  margin: 0 auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  gap: 12px !important;
+}
+
+.footer-links {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+}
+
+.footer-links button {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #334155 !important;
+  border-radius: 8px !important;
+  padding: 6px 12px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+}
+
 .sticky-cta-bar {
   position: fixed !important;
   bottom: 0 !important;
   left: 0 !important;
   right: 0 !important;
-  z-index: 9999 !important;
-  background: rgba(255, 255, 255, 0.96) !important;
-  backdrop-filter: blur(10px) !important;
-  -webkit-backdrop-filter: blur(10px) !important;
-  border-top: 1px solid #cbd5e1 !important;
-  padding: 8px 12px !important;
-  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08) !important;
+  z-index: 99999 !important;
+  background: rgba(255, 255, 255, 0.98) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-top: 1.5px solid #205b44 !important;
+  padding: 10px 16px !important;
+  box-shadow: 0 -6px 25px rgba(0, 0, 0, 0.12) !important;
+  box-sizing: border-box !important;
 }
 
 .sticky-cta-inner {
-  max-width: 540px !important;
+  max-width: 580px !important;
   margin: 0 auto !important;
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
-  gap: 10px !important;
+  gap: 12px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 .sticky-price-info {
   display: flex !important;
   flex-direction: column !important;
   text-align: right !important;
+  justify-content: center !important;
 }
 
 .sticky-title {
-  font-size: 11px !important;
-  font-weight: 700 !important;
-  color: #334155 !important;
-  max-width: 160px !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  color: #1e293b !important;
+  max-width: 180px !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   white-space: nowrap !important;
+  line-height: 1.3 !important;
 }
 
 .sticky-price {
-  font-size: 15px !important;
+  font-size: 17px !important;
   font-weight: 900 !important;
   color: #15803d !important;
+  direction: ltr !important;
+  line-height: 1.3 !important;
 }
 
 .sticky-cta-button {
-  padding: 8px 16px !important;
-  font-size: 13px !important;
-  font-weight: 800 !important;
+  padding: 10px 22px !important;
+  font-size: 14px !important;
+  font-weight: 900 !important;
   background: #205b44 !important;
   color: #ffffff !important;
   border: none !important;
-  border-radius: 20px !important;
+  border-radius: 30px !important;
   display: inline-flex !important;
   align-items: center !important;
-  gap: 6px !important;
+  gap: 8px !important;
   cursor: pointer !important;
+  box-shadow: 0 4px 14px rgba(32, 91, 68, 0.35) !important;
+  white-space: nowrap !important;
 }
 
 header {
