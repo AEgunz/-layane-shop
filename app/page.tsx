@@ -16,6 +16,9 @@ export default async function Page() {
     language: 'ar',
     headline: 'المنتج الأكثر طلباً وشهرة بالمغرب • نتائج مضمونة 100%',
     description: 'أجود المنتجات الطبيعية عالية الجودة المعروضة بأسعار مميزة مع خدمة التوصيل السريع والدفع عند الاستلام.',
+    image: '/assets/bundle.png',
+    images: ['/assets/bundle.png', '/assets/brace.png', '/assets/balm.png'],
+    reviewsImage: '/assets/faq.png',
     cta: 'اضغط هنا للطلب والدفع عند الاستلام',
     benefits: 'توصيل سريع مجاني لكافة المدن المغربية\nضمان الجودة والرضا التام 100%\nالدفع نقداً بعد معاينة الشحنة عند الاستلام',
     createdAt: new Date().toISOString()
@@ -28,10 +31,15 @@ export default async function Page() {
     const row = await db().prepare("SELECT id, data FROM pages WHERE status='published' ORDER BY rowid ASC").first<{ id: string; data: string }>();
     if (row && row.data) {
       const parsed = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
-      if (parsed && parsed.name && parsed.name !== 'Untitled product' && parsed.name !== 'Untitled') {
-        pageData = parsed;
-      } else if (parsed) {
-        pageData = { ...parsed, name: 'باك الراحة والشفاء الطبيعي' };
+      if (parsed) {
+        pageData = {
+          ...defaultPage,
+          ...parsed,
+          name: (!parsed.name || parsed.name === 'Untitled product' || parsed.name === 'Untitled') ? 'باك الراحة والشفاء الطبيعي' : parsed.name,
+          image: parsed.image || '/assets/bundle.png',
+          images: (parsed.images && parsed.images.length > 0) ? parsed.images : ['/assets/bundle.png', '/assets/brace.png', '/assets/balm.png'],
+          reviewsImage: parsed.reviewsImage || '/assets/faq.png'
+        };
         try {
           await db().prepare("UPDATE pages SET data=? WHERE id=?").bind(JSON.stringify(pageData), row.id).run();
         } catch {}

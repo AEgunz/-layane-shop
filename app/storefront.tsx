@@ -222,10 +222,15 @@ export function ProductView({page,brand,preview}:any){
   const [activePolicy,setActivePolicy]=useState<any>(null);
   const [id]=useState(()=>crypto.randomUUID());
 
-  const p=page;
+  const p=page || {};
   const ar=p.language==='ar'||!p.language;
   const fr=p.language==='fr';
   const productName = (!p.name || p.name === 'Untitled product' || p.name === 'Untitled') ? 'باك الراحة والشفاء الطبيعي' : p.name;
+
+  const defaultBannerImage = '/assets/bundle.png';
+  const firstImage = (p.images && p.images.length > 0 ? p.images[0] : p.image) || defaultBannerImage;
+  const remainingImages = (p.images && p.images.length > 1) ? p.images.slice(1) : ['/assets/brace.png', '/assets/balm.png'];
+  const reviewsBannerImage = p.reviewsImage || '/assets/faq.png';
 
   useEffect(() => {
     const pixelId = brand?.pixelId || '1116296790985534';
@@ -366,9 +371,6 @@ export function ProductView({page,brand,preview}:any){
     }
   }
 
-  const firstImage = p.images && p.images.length > 0 ? p.images[0] : p.image;
-  const remainingImages = p.images && p.images.length > 1 ? p.images.slice(1) : [];
-
   const formProps = {
     done,
     formState,
@@ -464,11 +466,11 @@ export function ProductView({page,brand,preview}:any){
 
           <OrderFormSection {...formProps} />
 
-          {p.reviewsImage && (
+          {reviewsBannerImage && (
             <section className="reviews-image-card">
               <h3>{ar ? 'آراء وتقييمات زبنائنا الكرام ⭐' : 'Customer Reviews & Feedback'}</h3>
               <div className="reviews-banner-wrap">
-                <img src={p.reviewsImage} alt="Customer Reviews" className="reviews-banner-image" loading="lazy" />
+                <img src={reviewsBannerImage} alt="Customer Reviews" className="reviews-banner-image" loading="lazy" />
               </div>
             </section>
           )}
