@@ -25,6 +25,19 @@ function getSupabaseD1() {
 
     async execApi() {
       try {
+        // The homepage needs row IDs to resolve main_home_page_id, as well as
+        // the saved content. Do not fall through to the empty-query result.
+        if (this.sql === "SELECT id, slug, data FROM pages WHERE status='published'") {
+          const res = await fetch(`${cleanUrl}/rest/v1/pages?status=eq.published&select=id,slug,data`, {
+            cache: 'no-store',
+            headers: { 'apikey': supabaseKey!, 'Authorization': `Bearer ${supabaseKey}` }
+          });
+          if (!res.ok) throw new Error(`Published pages read failed (${res.status})`);
+          const data = await res.json();
+          if (!Array.isArray(data)) throw new Error('Invalid published pages response');
+          return data;
+        }
+
         if (this.sql.includes('SELECT data FROM pages')) {
           if (this.sql.includes("WHERE slug=?")) {
             const slug = this.params[0];
