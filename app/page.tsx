@@ -10,13 +10,13 @@ export default async function Page() {
   try {
     let targetPageId = '';
     try {
-      const mainHomeSetting = await db().prepare("SELECT value FROM settings WHERE key='main_home_page_id'").first<{ value: string }>();
+      const mainHomeSetting = await db().prepare("SELECT value FROM settings WHERE key='main_home_page_id'").first();
       if (mainHomeSetting) {
         targetPageId = typeof mainHomeSetting === 'string' ? mainHomeSetting : (mainHomeSetting.value || '');
       }
     } catch {}
 
-    const allPagesRes = await db().prepare("SELECT id, slug, data FROM pages WHERE status='published'").all<{ id: string; slug: string; data: string }>();
+    const allPagesRes = await db().prepare("SELECT id, slug, data FROM pages WHERE status='published'").all();
     const pagesList = (allPagesRes?.results || []).map((r: any) => {
       try {
         const d = typeof r.data === 'string' ? JSON.parse(r.data) : r.data;

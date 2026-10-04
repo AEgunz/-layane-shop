@@ -51,11 +51,27 @@ self.addEventListener('message', event => {
 self.addEventListener('notificationclick', event => {
   event.notification.close();
   event.waitUntil((async () => {
+    const target = (event.notification.data && event.notification.data.url) || '/admin';
+    const targetUrl = new URL(target, self.location.origin).href;
     const windows = await self.clients.matchAll({type: 'window', includeUncontrolled: true});
+    // Reuse an existing app window: navigate it to the admin and focus it.
+    // This avoids Android spawning a separate browser tab outside the installed app.
     for (const client of windows) {
-      const url = new URL(client.url);
-      if (url.origin === self.location.origin && url.pathname === '/admin') return client.focus();
+      try {
+        if (new URL(client.url).origin !== self.location.origin) continue;
+      } catch { continue; }
+      try {
+        if (client.url.split('#')[0] !== targetUrl && typeof client.navigate === 'function') {
+          await client.navigate(targetUrl);
+        }
+      } catch {}
+      return client.focus();
     }
-    return self.clients.openWindow('/admin');
+    const opened = await self.clients.openWindow(target);
+    if (opened) return opened;
+    // openWindow was blocked: fall back to focusing any window we already have.
+    for (const client of windows) {
+      try { return await client.focus(); } catch {}
+    }
   })());
 });

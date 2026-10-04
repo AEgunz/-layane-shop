@@ -11,7 +11,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   let brandData: any = defaultBrand;
 
   try {
-    const row = await db().prepare("SELECT data FROM pages WHERE slug=? AND status='published'").bind(slug).first<{ data: string }>();
+    const row = await db().prepare("SELECT data FROM pages WHERE slug=? AND status='published'").bind(slug).first();
     if (row && row.data) {
       const parsed = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
       if (parsed) {

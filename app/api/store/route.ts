@@ -42,7 +42,7 @@ export async function GET(){
     let currentAdmin = { name: 'Primary Administrator', username: 'admin', role: 'full' };
     let mainHomePageId = '';
 
-    try { pages = await db().prepare('SELECT data FROM pages ORDER BY rowid DESC').all<{data:string}>(); } catch {}
+    try { pages = await db().prepare('SELECT data FROM pages ORDER BY rowid DESC').all(); } catch {}
     try { orders = await db().prepare('SELECT * FROM orders ORDER BY created_at DESC').all(); } catch {}
     try { visits = await db().prepare('SELECT page_id,day,count(*) AS count FROM visits GROUP BY page_id,day').all(); } catch {}
     try { b = await brand(); } catch {}
@@ -50,7 +50,7 @@ export async function GET(){
     try { userPerms = await getSessionPermissions(); } catch {}
     try { currentAdmin = await getCurrentAdminInfo(); } catch {}
     try {
-      const mainSetting = await db().prepare("SELECT value FROM settings WHERE key='main_home_page_id'").first<{ value: string }>();
+      const mainSetting = await db().prepare("SELECT value FROM settings WHERE key='main_home_page_id'").first();
       if (mainSetting && mainSetting.value) mainHomePageId = mainSetting.value;
     } catch {}
 

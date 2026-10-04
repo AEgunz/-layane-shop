@@ -46,6 +46,7 @@ function getSupabaseD1() {
   const cleanUrl = url.replace(/\/$/, '');
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_API_KEY;
   if (!supabaseKey) return null;
+  const sbApiKey: string = supabaseKey;
 
   class SupabaseStmt {
     sql: string; params: any[];
@@ -54,23 +55,23 @@ function getSupabaseD1() {
     }
     bind(...args: any[]) { return new SupabaseStmt(this.sql, args); }
 
-    async execApi() {
+    async execApi(): Promise<any[]> {
       try {
         if (this.sql.includes('SELECT') && this.sql.includes('pages')) {
           if (this.sql.includes("WHERE slug=?")) {
             const slug = this.params[0];
             const res = await fetch(`${cleanUrl}/rest/v1/pages?slug=eq.${encodeURIComponent(slug)}&status=eq.published&select=data`, {
-              headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` },
+              headers: { 'apikey': sbApiKey, 'Authorization': `Bearer ${sbApiKey}` },
               cache: 'no-store'
             });
-            const data = await res.json();
+            const data: any = await res.json();
             return data || [];
           }
           const res = await fetch(`${cleanUrl}/rest/v1/pages?status=eq.published&select=id,slug,data`, {
-            headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` },
+            headers: { 'apikey': sbApiKey, 'Authorization': `Bearer ${sbApiKey}` },
             cache: 'no-store'
           });
-          const data = await res.json();
+          const data: any = await res.json();
           return data || [];
         }
 
@@ -79,8 +80,8 @@ function getSupabaseD1() {
           await fetch(`${cleanUrl}/rest/v1/pages`, {
             method: 'POST',
             headers: {
-              'apikey': supabaseKey,
-              'Authorization': `Bearer ${supabaseKey}`,
+              'apikey': sbApiKey,
+              'Authorization': `Bearer ${sbApiKey}`,
               'Content-Type': 'application/json',
               'Prefer': 'resolution=merge-duplicates'
             },
@@ -91,9 +92,9 @@ function getSupabaseD1() {
 
         if (this.sql.includes('SELECT * FROM orders')) {
           const res = await fetch(`${cleanUrl}/rest/v1/orders?select=*`, {
-            headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` }
+            headers: { 'apikey': sbApiKey, 'Authorization': `Bearer ${sbApiKey}` }
           });
-          const data = await res.json();
+          const data: any = await res.json();
           return data || [];
         }
 
@@ -102,8 +103,8 @@ function getSupabaseD1() {
           await fetch(`${cleanUrl}/rest/v1/orders`, {
             method: 'POST',
             headers: {
-              'apikey': supabaseKey,
-              'Authorization': `Bearer ${supabaseKey}`,
+              'apikey': sbApiKey,
+              'Authorization': `Bearer ${sbApiKey}`,
               'Content-Type': 'application/json',
               'Prefer': 'resolution=merge-duplicates'
             },
@@ -119,8 +120,8 @@ function getSupabaseD1() {
           await fetch(`${cleanUrl}/rest/v1/orders?id=eq.${encodeURIComponent(id)}`, {
             method: 'PATCH',
             headers: {
-              'apikey': supabaseKey,
-              'Authorization': `Bearer ${supabaseKey}`,
+              'apikey': sbApiKey,
+              'Authorization': `Bearer ${sbApiKey}`,
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({ status })
@@ -134,8 +135,8 @@ function getSupabaseD1() {
             await fetch(`${cleanUrl}/rest/v1/orders?id=eq.${encodeURIComponent(id)}`, {
               method: 'DELETE',
               headers: {
-                'apikey': supabaseKey,
-                'Authorization': `Bearer ${supabaseKey}`
+                'apikey': sbApiKey,
+                'Authorization': `Bearer ${sbApiKey}`
               }
             });
           }
@@ -148,8 +149,8 @@ function getSupabaseD1() {
             await fetch(`${cleanUrl}/rest/v1/pages?id=eq.${encodeURIComponent(id)}`, {
               method: 'DELETE',
               headers: {
-                'apikey': supabaseKey,
-                'Authorization': `Bearer ${supabaseKey}`
+                'apikey': sbApiKey,
+                'Authorization': `Bearer ${sbApiKey}`
               }
             });
           }
@@ -164,9 +165,9 @@ function getSupabaseD1() {
           else if (this.sql.includes("'main_home_page_id'")) key = 'main_home_page_id';
 
           const res = await fetch(`${cleanUrl}/rest/v1/settings?key=eq.${encodeURIComponent(key)}&select=value`, {
-            headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` }
+            headers: { 'apikey': sbApiKey, 'Authorization': `Bearer ${sbApiKey}` }
           });
-          const data = await res.json();
+          const data: any = await res.json();
           return data || [];
         }
 
@@ -180,8 +181,8 @@ function getSupabaseD1() {
           await fetch(`${cleanUrl}/rest/v1/settings?key=eq.${encodeURIComponent(key)}`, {
             method: 'DELETE',
             headers: {
-              'apikey': supabaseKey,
-              'Authorization': `Bearer ${supabaseKey}`
+              'apikey': sbApiKey,
+              'Authorization': `Bearer ${sbApiKey}`
             }
           });
           return [];
@@ -204,14 +205,14 @@ function getSupabaseD1() {
           if (key === 'main_home_page_id' || key === 'brand' || key === 'admins') {
             await fetch(`${cleanUrl}/rest/v1/settings?key=eq.${encodeURIComponent(key)}`, {
               method: 'DELETE',
-              headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` }
+              headers: { 'apikey': sbApiKey, 'Authorization': `Bearer ${sbApiKey}` }
             }).catch(() => {});
 
             await fetch(`${cleanUrl}/rest/v1/settings`, {
               method: 'POST',
               headers: {
-                'apikey': supabaseKey,
-                'Authorization': `Bearer ${supabaseKey}`,
+                'apikey': sbApiKey,
+                'Authorization': `Bearer ${sbApiKey}`,
                 'Content-Type': 'application/json'
               },
               body: JSON.stringify({ key, value })
@@ -222,9 +223,9 @@ function getSupabaseD1() {
 
         if (this.sql.includes('SELECT page_id,day')) {
           const res = await fetch(`${cleanUrl}/rest/v1/visits?select=page_id,day,count`, {
-            headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` }
+            headers: { 'apikey': sbApiKey, 'Authorization': `Bearer ${sbApiKey}` }
           });
-          const data = await res.json();
+          const data: any = await res.json();
           if (Array.isArray(data)) {
             const grouped: any = {};
             data.forEach((r: any) => {
@@ -243,8 +244,8 @@ function getSupabaseD1() {
             await fetch(`${cleanUrl}/rest/v1/visits`, {
               method: 'POST',
               headers: {
-                'apikey': supabaseKey,
-                'Authorization': `Bearer ${supabaseKey}`,
+                'apikey': sbApiKey,
+                'Authorization': `Bearer ${sbApiKey}`,
                 'Content-Type': 'application/json',
                 'Prefer': 'resolution=merge-duplicates'
               },
@@ -301,7 +302,7 @@ function getTursoD1() {
     }
     bind(...args: any[]) { return new TursoStmt(this.sql, args); }
 
-    async execApi() {
+    async execApi(): Promise<any[]> {
       try {
         const res = await fetch(`${httpUrl}/v2/pipeline`, {
           method: 'POST',
@@ -325,7 +326,7 @@ function getTursoD1() {
             ]
           })
         });
-        const data = await res.json();
+        const data: any = await res.json();
         const results = data.results?.[0]?.response?.result;
         if (!results || !results.rows) return [];
 
@@ -420,7 +421,7 @@ export function db() {
 
 export async function brand(){
   try {
-    const row=await db().prepare("SELECT value FROM settings WHERE key='brand'").first<{value:string}>();
+    const row=await db().prepare("SELECT value FROM settings WHERE key='brand'").first();
     if (row) {
       const valStr = typeof row === 'string' ? row : ((row as any).value || (row as any).data);
       if (valStr && typeof valStr === 'string' && valStr.startsWith('{')) {
@@ -437,7 +438,7 @@ export async function brand(){
 
 export async function getAdmins() {
   try {
-    const row = await db().prepare("SELECT value FROM settings WHERE key='admins'").first<{value:string}>();
+    const row = await db().prepare("SELECT value FROM settings WHERE key='admins'").first();
     if (row) {
       const valStr = typeof row === 'string' ? row : ((row as any).value || (row as any).data);
       if (valStr && typeof valStr === 'string' && valStr.startsWith('[')) {

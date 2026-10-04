@@ -2,7 +2,7 @@
 import {useState,useEffect,useCallback} from 'react';
 import {LayoutDashboard,PanelsTopLeft,ShoppingBag,ChartNoAxesCombined,Settings,Plus,Leaf,ArrowUpRight,Globe,MousePointer2,Wallet,Search,ChevronDown,Download,ExternalLink,Copy,Pencil,X,Monitor,Smartphone,Check,Archive,RefreshCw,ImagePlus,ArrowLeft,ArrowRight,Eye,ShieldCheck,Upload,LogOut,Lock,MessageCircle,Trash2,Bell} from 'lucide-react';
 import {Logo,ProductView} from './storefront';
-import {enablePush} from '@/lib/push-client';
+import {enablePush,showOrderNotification} from '@/lib/push-client';
 import JSZip from 'jszip';
 
 const money=(n:number)=>new Intl.NumberFormat('en-MA',{maximumFractionDigits:2}).format(n)+' DH';
@@ -173,7 +173,7 @@ function ZipUploader({onHtmlLoaded,onImagesLoaded}:any){
             const body=new FormData();
             body.append('file',fileToUpload);
             const r=await fetch('/api/upload',{method:'POST',body});
-            const d=await r.json();
+            const d:any=await r.json();
             if(r.ok&&d?.url){
               uploadedUrl = d.url;
             }
@@ -284,7 +284,7 @@ function MultiImageUploader({images,onChange}:any){
                 #{idx+1}
               </span>
               <img src={url} alt={`Section ${idx+1}`} style={{width:'100%',height:'90px',objectFit:'cover',display:'block'}}/>
-              <div style={{display:'flex',justify:'space-between',alignItems:'center',background:'#f4f7f3',padding:'5px 6px',borderTop:'1px solid #e1e9df'}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',background:'#f4f7f3',padding:'5px 6px',borderTop:'1px solid #e1e9df'}}>
                 <button type="button" title="تحريك لليسار" disabled={idx===0} onClick={()=>move(idx,idx-1)} style={{padding:'3px 6px',border:0,background:'transparent',cursor:'pointer',opacity:idx===0?0.3:1}}>
                   <ArrowLeft size={14}/>
                 </button>
@@ -554,27 +554,24 @@ export default function Studio(){
   const reload = useCallback(async (isBackground = false) => {
     try {
       const d = await api();
+      // Notification delivery must never prevent the admin from loading.
+      setData(d);
+      setError('');
+      setLoginErr('');
       if (d && Array.isArray(d.orders) && d.orders.length > 0) {
         const latestOrder = d.orders[0];
         const lastSeenId = safeLocalStorageGet('layane_last_seen_order');
 
         if (latestOrder && latestOrder.id !== lastSeenId) {
+          safeLocalStorageSet('layane_last_seen_order', latestOrder.id);
           if (lastSeenId) {
             playNotificationChime();
-            if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-              new Notification(`🚨 طلب جديد #${latestOrder.id.slice(0, 8).toUpperCase()}!`, {
-                body: `الزبون: ${latestOrder.customer} (${latestOrder.city}) • المجموع: ${latestOrder.total} DH`,
-                icon: '/icon.png',
-                badge: '/icon.png'
-              });
-            }
+            void showOrderNotification(latestOrder.id).catch(() => {
+              // A blocked service worker must not block login or order refresh.
+            });
           }
-          safeLocalStorageSet('layane_last_seen_order', latestOrder.id);
         }
       }
-      setData(d);
-      setError('');
-      setLoginErr('');
       return d;
     } catch (e: any) {
       if (!isBackground) {
@@ -1130,7 +1127,7 @@ export default function Studio(){
                   {['new','confirmed','shipped','delivered','cancelled'].map(s=><option key={s}>{s}</option>)}
                 </select>
               </label>
-              <div style={{display:'flex',gap:'12px',marginTop:'18px',justify:'space-between',alignItems:'center'}}>
+              <div style={{display:'flex',gap:'12px',marginTop:'18px',justifyContent:'space-between',alignItems:'center'}}>
                 <button className="primary" disabled={busy}>{busy?'Saving…':'Update status'}</button>
                 <button
                   type="button"

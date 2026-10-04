@@ -27,10 +27,10 @@ export async function GET(r:Request){
     let row: any = null;
     try {
       if (slug && slug !== 'default' && slug !== 'home') {
-        row = await db().prepare("SELECT data FROM pages WHERE slug=?").bind(slug).first<{data:string}>();
+        row = await db().prepare("SELECT data FROM pages WHERE slug=?").bind(slug).first();
       }
       if (!row) {
-        row = await db().prepare("SELECT data FROM pages ORDER BY rowid DESC").first<{data:string}>();
+        row = await db().prepare("SELECT data FROM pages ORDER BY rowid DESC").first();
       }
     } catch {}
 
@@ -91,10 +91,10 @@ export async function POST(r:Request){
       let row = null;
       try {
         if (slug && slug !== 'default' && slug !== 'home') {
-          row = await db().prepare("SELECT id FROM pages WHERE slug=?").bind(slug).first<{id:string}>();
+          row = await db().prepare("SELECT id FROM pages WHERE slug=?").bind(slug).first();
         }
         if (!row) {
-          row = await db().prepare("SELECT id FROM pages ORDER BY rowid DESC").first<{id:string}>();
+          row = await db().prepare("SELECT id FROM pages ORDER BY rowid DESC").first();
         }
       } catch {}
 
@@ -121,10 +121,10 @@ export async function POST(r:Request){
       let row = null;
       try {
         if (slug && slug !== 'default' && slug !== 'home') {
-          row = await db().prepare("SELECT id,data FROM pages WHERE slug=?").bind(slug).first<{id:string,data:string}>();
+          row = await db().prepare("SELECT id,data FROM pages WHERE slug=?").bind(slug).first();
         }
         if (!row) {
-          row = await db().prepare("SELECT id,data FROM pages ORDER BY rowid DESC").first<{id:string,data:string}>();
+          row = await db().prepare("SELECT id,data FROM pages ORDER BY rowid DESC").first();
         }
       } catch {}
 
