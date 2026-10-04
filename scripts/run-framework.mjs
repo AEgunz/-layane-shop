@@ -85,7 +85,14 @@ async function startServer() {
       const host = req.headers.host || \`localhost:\${PORT}\`;
       const url = new URL(req.url || '/', \`\${protocol}://\${host}\`);
 
-      const clientFilePath = path.join(__dirname, 'client', url.pathname);
+      let clientFilePath = path.join(__dirname, 'client', url.pathname);
+      if (!fs.existsSync(clientFilePath) || !fs.statSync(clientFilePath).isFile()) {
+        clientFilePath = path.join(process.cwd(), 'public', url.pathname);
+      }
+      if (!fs.existsSync(clientFilePath) || !fs.statSync(clientFilePath).isFile()) {
+        clientFilePath = path.join(__dirname, '..', 'public', url.pathname);
+      }
+
       if (fs.existsSync(clientFilePath) && fs.statSync(clientFilePath).isFile()) {
         const ext = path.extname(clientFilePath).toLowerCase();
         res.statusCode = 200;
