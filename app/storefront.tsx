@@ -225,7 +225,7 @@ export function ProductView({page,brand,preview}:any){
   const p=page || {};
   const ar=p.language==='ar'||!p.language;
   const fr=p.language==='fr';
-  const productName = (!p.name || p.name === 'Untitled product' || p.name === 'Untitled') ? 'باك الراحة والشفاء الطبيعي' : p.name;
+  const productName = p.name || 'باك الراحة والشفاء الطبيعي';
 
   const defaultBannerImage = '/assets/bundle.png';
   const hasUploadedImages = Array.isArray(p.images) && p.images.length > 0;
@@ -495,21 +495,18 @@ export function ProductView({page,brand,preview}:any){
 
       <footer className="storefront-footer">
         <div className="footer-content">
-          <p>© {new Date().getFullYear()} {brand.name}. {ar ? 'جميع الحقوق محفوظة' : 'All rights reserved.'}</p>
+          <p>© {new Date().getFullYear()} <span dir="ltr">{brand.name || 'layane-shop'}</span>. {ar ? 'جميع الحقوق محفوظة' : 'All rights reserved.'}</p>
           <div className="footer-links">
-            <button onClick={() => openPolicyModal('returns')}>{ar ? 'سياسة الإرجاع والاستبدال' : 'Returns'}</button>
-            <span className="dot">•</span>
-            <button onClick={() => openPolicyModal('privacy')}>{ar ? 'سياسة الخصوصية' : 'Privacy Policy'}</button>
-            <span className="dot">•</span>
-            <button onClick={() => openPolicyModal('cgv')}>{ar ? 'شروط البيع (CGV)' : 'Terms of Sale'}</button>
+            <button type="button" onClick={() => openPolicyModal('returns')}>{ar ? 'سياسة الإرجاع والاستبدال' : 'Returns'}</button>
+            <button type="button" onClick={() => openPolicyModal('privacy')}>{ar ? 'سياسة الخصوصية' : 'Privacy Policy'}</button>
+            <button type="button" onClick={() => openPolicyModal('cgv')}>{ar ? 'شروط البيع (CGV)' : 'Terms of Sale'}</button>
           </div>
-          <div className="developer-signature" style={{ marginTop: '12px', fontSize: '11px', opacity: 0.7 }}>
+          <div className="developer-signature">
             Designed & Developed by{' '}
             <a
               href="https://www.linkedin.com/in/ayoub-eddarif-b92189b3/"
               target="_blank"
               rel="noopener noreferrer"
-              style={{ color: 'inherit', textDecoration: 'underline' }}
             >
               Ayoub Eddarif
             </a>

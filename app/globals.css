@@ -802,11 +802,34 @@ textarea::placeholder {
   background: #ffffff !important;
   border: 1px solid #cbd5e1 !important;
   color: #334155 !important;
-  border-radius: 8px !important;
-  padding: 6px 12px !important;
+  border-radius: 20px !important;
+  padding: 6px 16px !important;
   font-size: 12px !important;
   font-weight: 700 !important;
   cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04) !important;
+}
+
+.footer-links button:hover {
+  background: #205b44 !important;
+  color: #ffffff !important;
+  border-color: #205b44 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(32, 91, 68, 0.25) !important;
+}
+
+.developer-signature {
+  font-size: 11px !important;
+  color: #64748b !important;
+  font-weight: 600 !important;
+  margin-top: 8px !important;
+}
+
+.developer-signature a {
+  color: #205b44 !important;
+  font-weight: 800 !important;
+  text-decoration: underline !important;
 }
 
 .sticky-cta-bar {
