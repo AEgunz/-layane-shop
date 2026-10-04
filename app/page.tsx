@@ -31,7 +31,9 @@ export default async function Page() {
     let targetPageId = '';
     try {
       const mainHomeSetting = await db().prepare("SELECT value FROM settings WHERE key='main_home_page_id'").first<{ value: string }>();
-      if (mainHomeSetting && mainHomeSetting.value) targetPageId = mainHomeSetting.value;
+      if (mainHomeSetting) {
+        targetPageId = typeof mainHomeSetting === 'string' ? mainHomeSetting : (mainHomeSetting.value || '');
+      }
     } catch {}
 
     let row: any = null;
@@ -45,13 +47,7 @@ export default async function Page() {
     if (row && row.data) {
       const parsed = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
       if (parsed) {
-        pageData = {
-          ...parsed,
-          name: (!parsed.name || parsed.name === 'Untitled product' || parsed.name === 'Untitled') ? 'باك الراحة والشفاء الطبيعي' : parsed.name,
-          images: Array.isArray(parsed.images) && parsed.images.length > 0 ? parsed.images : (parsed.image ? [parsed.image] : []),
-          image: parsed.image || (Array.isArray(parsed.images) && parsed.images.length > 0 ? parsed.images[0] : '/assets/bundle.png'),
-          reviewsImage: parsed.reviewsImage || ''
-        };
+        pageData = parsed;
       }
     }
   } catch {}

@@ -87,7 +87,7 @@ function OrderFormSection({
 
   const unitPrice = p.price || 249;
   const total = unitPrice * quantity + (p.shipping || 0);
-  const productName = (!p.name || p.name === 'Untitled product' || p.name === 'Untitled') ? 'باك الراحة والشفاء الطبيعي' : p.name;
+  const productName = p.name || 'باك الراحة والشفاء الطبيعي';
 
   return (
     <div id="checkout-form" className="orderbox animated-orderbox">
