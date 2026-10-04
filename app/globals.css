@@ -367,19 +367,115 @@
   font-weight: 800 !important;
 }
 
-.main-banner-image-wrap {
+/* =========================================================
+   LANDING PAGE IMAGES & SECTIONS STRICT RESPONSIVE CSS
+   ========================================================= */
+
+.additional-images-grid {
   width: 100% !important;
-  border-radius: 12px !important;
-  overflow: hidden !important;
-  margin: 10px 0 16px 0 !important;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06) !important;
+  max-width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  margin: 16px 0 !important;
+  box-sizing: border-box !important;
 }
 
-.main-banner-image {
+.secondary-banner-image-wrap,
+.main-banner-image-wrap,
+.reviews-banner-wrap {
   width: 100% !important;
+  max-width: 100% !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05) !important;
+  background: #ffffff !important;
+}
+
+.secondary-banner-image,
+.main-banner-image,
+.reviews-banner-image,
+.seamless-img,
+.landing-banner-img {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  max-height: 80vh !important;
+  display: block !important;
+  object-fit: contain !important;
+  margin: 0 auto !important;
+  box-sizing: border-box !important;
+}
+
+.custom-html-landing {
+  width: 100% !important;
+  max-width: 580px !important;
+  margin: 0 auto !important;
+  padding: 0 12px !important;
+  box-sizing: border-box !important;
+}
+
+.custom-html-landing img {
+  width: 100% !important;
+  max-width: 100% !important;
   height: auto !important;
   display: block !important;
   object-fit: contain !important;
+  border-radius: 10px !important;
+  margin: 10px auto !important;
+}
+
+.product-description-card,
+.product-benefits-card,
+.reviews-image-card {
+  width: 100% !important;
+  max-width: 100% !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  padding: 16px !important;
+  margin: 16px 0 !important;
+  box-sizing: border-box !important;
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+.product-description-card h3,
+.product-benefits-card h3,
+.reviews-image-card h3 {
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  color: #205b44 !important;
+  margin: 0 0 10px 0 !important;
+  text-align: center !important;
+}
+
+.product-description-card p {
+  font-size: 13px !important;
+  color: #334155 !important;
+  line-height: 1.6 !important;
+  margin: 0 !important;
+}
+
+.benefits-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+}
+
+.benefit-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 13px !important;
+  color: #1e293b !important;
+  font-weight: 600 !important;
+}
+
+.benefit-item .check-icon {
+  color: #15803d !important;
+  flex-shrink: 0 !important;
 }
 
 .animated-orderbox, .orderbox {
