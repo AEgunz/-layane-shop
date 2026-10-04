@@ -1,5 +1,5 @@
 'use client';
-import {useState,useEffect} from 'react';
+import {useState,useEffect,useRef,useId} from 'react';
 import {ShoppingBag,Star,ShieldCheck,Truck,RotateCcw,ChevronDown,Check,Plus,Minus,X,Lock,Phone,MapPin,User,Tag,Award,Sparkles,MessageCircle} from 'lucide-react';
 
 const money=(n:number)=>new Intl.NumberFormat('en-MA',{maximumFractionDigits:2}).format(n)+' DH';
@@ -85,9 +85,9 @@ function OrderFormSection({
     );
   }
 
-  const unitPrice = p.price || 249;
+  const unitPrice = p.price ?? 0;
   const total = unitPrice * quantity + (p.shipping || 0);
-  const productName = p.name || 'باك الراحة والشفاء الطبيعي';
+  const productName = p.name || '';
 
   return (
     <div id="checkout-form" className="orderbox animated-orderbox">
@@ -220,16 +220,32 @@ export function ProductView({page,brand,preview}:any){
   const [quantity,setQuantity]=useState(1);
   const [formState,setFormState]=useState({ name: '', phone: '', city: '', address: '' });
   const [activePolicy,setActivePolicy]=useState<any>(null);
+  const policyDialog = useRef<HTMLDialogElement>(null);
+  const policyTitleId = useId();
+
+  useEffect(() => {
+    if (!activePolicy) return;
+    const dialog = policyDialog.current;
+    if (!dialog) return;
+    const trigger = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    dialog.showModal();
+    document.body.style.overflow = 'hidden';
+    return () => {
+      dialog.close();
+      document.body.style.overflow = previousOverflow;
+      trigger?.focus({preventScroll: true});
+    };
+  }, [activePolicy]);
   const [id]=useState(()=>crypto.randomUUID());
 
   const p=page || {};
   const ar=p.language==='ar'||!p.language;
   const fr=p.language==='fr';
-  const productName = p.name || 'باك الراحة والشفاء الطبيعي';
+  const productName = p.name || '';
 
-  const defaultBannerImage = '/assets/bundle.png';
   const hasUploadedImages = Array.isArray(p.images) && p.images.length > 0;
-  const firstImage = hasUploadedImages ? p.images[0] : (p.image || defaultBannerImage);
+  const firstImage = hasUploadedImages ? p.images[0] : (p.image || '');
   const remainingImages = hasUploadedImages ? p.images.slice(1) : [];
   const reviewsBannerImage = p.reviewsImage || '';
 
@@ -261,7 +277,7 @@ export function ProductView({page,brand,preview}:any){
         if (productName) {
           (window as any).fbq('track', 'ViewContent', {
             content_name: productName,
-            value: p.price || 249,
+            value: p.price ?? 0,
             currency: 'MAD'
           });
         }
@@ -324,7 +340,7 @@ export function ProductView({page,brand,preview}:any){
     const phoneVal = String(f.get('phone') || formState.phone);
     const cityVal = String(f.get('city') || formState.city);
     const addressVal = String(f.get('address') || formState.address);
-    const totalAmount = (p.price || 249) * quantity + (p.shipping || 0);
+    const totalAmount = (p.price ?? 0) * quantity + (p.shipping || 0);
 
     try{
       const res=await fetch('/api/public',{
@@ -403,8 +419,8 @@ export function ProductView({page,brand,preview}:any){
             {p.headline && <p className="landing-headline">{p.headline}</p>}
 
             <div className="price-tag-wrapper">
-              <span className="current-price">{money(p.price || 249)}</span>
-              {p.comparePrice > (p.price || 249) && (
+              <span className="current-price">{money(p.price ?? 0)}</span>
+              {p.comparePrice > (p.price ?? 0) && (
                 <span className="old-price">{money(p.comparePrice)}</span>
               )}
               <span className="free-shipping-badge">
@@ -484,7 +500,7 @@ export function ProductView({page,brand,preview}:any){
         <div className="sticky-cta-inner">
           <div className="sticky-price-info">
             <span className="sticky-title">{productName}</span>
-            <span className="sticky-price">{money(p.price || 249)}</span>
+            <span className="sticky-price">{money(p.price ?? 0)}</span>
           </div>
           <button className="sticky-cta-button" onClick={scrollToCheckout}>
             <ShoppingBag size={18} />
@@ -515,17 +531,20 @@ export function ProductView({page,brand,preview}:any){
       </footer>
 
       {activePolicy && (
-        <div className="policy-modal-overlay" onClick={() => setActivePolicy(null)}>
-          <div className="policy-modal-card" onClick={e => e.stopPropagation()}>
+        <dialog ref={policyDialog} className="policy-modal-dialog" aria-labelledby={policyTitleId}
+          onCancel={() => setActivePolicy(null)}
+          onClose={e => { if (!e.currentTarget.open) setActivePolicy(null); }}
+          onClick={e => { if (e.target === e.currentTarget) setActivePolicy(null); }}>
+          <div className="policy-modal-card">
             <div className="policy-modal-header">
-              <h3>{activePolicy.title}</h3>
-              <button onClick={() => setActivePolicy(null)} aria-label="إغلاق"><X size={20} /></button>
+              <h3 id={policyTitleId}>{activePolicy.title}</h3>
+              <button type="button" autoFocus onClick={() => setActivePolicy(null)} aria-label="إغلاق"><X size={20} /></button>
             </div>
             <div className="policy-modal-body">
               {activePolicy.content}
             </div>
           </div>
-        </div>
+        </dialog>
       )}
     </div>
   );

@@ -969,3 +969,42 @@ header {
     display: none !important;
   }
 }
+
+/* Native modal top layer keeps policies above the fixed checkout bar. */
+.policy-modal-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: min(560px, calc(100% - 32px));
+  max-height: calc(100dvh - 32px);
+  padding: 0;
+  border: 0;
+  border-radius: 18px;
+  background: #fff;
+  color: #202f29;
+  box-shadow: 0 24px 80px #0004;
+  overflow: auto;
+  overscroll-behavior: contain;
+  text-align: start;
+}
+.policy-modal-dialog::backdrop { background: rgb(15 30 23 / 60%); }
+.policy-modal-card { padding: 24px; }
+.policy-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e4e9e6;
+}
+.policy-modal-header h3 { font-size: 20px; line-height: 1.6; }
+.policy-modal-header button { flex-shrink: 0; padding: 10px; }
+.policy-modal-body { padding-top: 18px; line-height: 1.9; }
+.policy-modal-body p { color: #42584c; }
+.policy-modal-body p + p { margin-top: 12px; }
+.policy-modal-body ul { padding-inline-start: 24px; }
+.policy-modal-body li + li { margin-top: 10px; }
+@media (max-width: 480px) {
+  .policy-modal-card { padding: 18px; }
+  .policy-modal-header h3 { font-size: 18px; }
+}

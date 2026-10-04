@@ -51,6 +51,8 @@ for (const serialized of [true, false]) {
     assert.equal((await home.default()).props.page.id, 'other');
     // A draft cannot become the public homepage through the saved setting.
     selectedId = 'draft';
-    assert.notEqual((await home.default()).props.page.id, 'draft');
+    assert.equal((await home.default()).type, 'main');
+    selectedId = '';
+    assert.equal((await home.default()).type, 'main');
   });
 }

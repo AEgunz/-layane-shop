@@ -4,27 +4,7 @@ import { db, brand, defaultBrand } from '@/lib/store';
 export const dynamic = 'force-dynamic';
 
 export default async function Page() {
-  const defaultPage = {
-    id: 'default-product',
-    name: 'باك الراحة والشفاء الطبيعي',
-    slug: 'home',
-    price: 249,
-    comparePrice: 345,
-    shipping: 0,
-    status: 'published',
-    template: 'editorial',
-    language: 'ar',
-    headline: 'المنتج الأكثر طلباً وشهرة بالمغرب • نتائج مضمونة 100%',
-    description: 'أجود المنتجات الطبيعية عالية الجودة المعروضة بأسعار مميزة مع خدمة التوصيل السريع والدفع عند الاستلام.',
-    image: '/assets/bundle.png',
-    images: ['/assets/bundle.png', '/assets/brace.png', '/assets/balm.png'],
-    reviewsImage: '/assets/faq.png',
-    cta: 'اضغط هنا للطلب والدفع عند الاستلام',
-    benefits: 'توصيل سريع مجاني لكافة المدن المغربية\nضمان الجودة والرضا التام 100%\nالدفع نقداً بعد معاينة الشحنة عند الاستلام',
-    createdAt: new Date().toISOString()
-  };
-
-  let pageData: any = defaultPage;
+  let pageData: any = null;
   let brandData: any = defaultBrand;
 
   try {
@@ -51,12 +31,6 @@ export default async function Page() {
       if (targetPageId) {
         chosen = pagesList.find((p: any) => p.id === targetPageId || p.data?.id === targetPageId);
       }
-      if (!chosen) {
-        chosen = pagesList.find((p: any) => p.id !== 'default-product' && p.slug !== 'home' && p.data?.id !== 'default-product');
-      }
-      if (!chosen) {
-        chosen = pagesList[pagesList.length - 1];
-      }
       if (chosen && chosen.data) {
         pageData = chosen.data;
       }
@@ -66,6 +40,13 @@ export default async function Page() {
   try {
     brandData = await brand();
   } catch {}
+
+  if (!pageData) {
+    return <main dir="rtl" style={{minHeight: '100dvh', display: 'grid', placeContent: 'center', textAlign: 'center', padding: 24}}>
+      <h1>{brandData.name}</h1>
+      <p>مرحباً بكم، سيتم عرض منتجاتنا هنا قريباً.</p>
+    </main>;
+  }
 
   return <Storefront page={pageData} brand={brandData} />;
 }
