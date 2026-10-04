@@ -69,16 +69,20 @@ export async function POST(r:Request){
         const userSlug = matchedAdmin?.username || 'admin';
         const sessionVal = `logged_in:${userSlug}:${encodeURIComponent(JSON.stringify(perms))}`;
 
-        const headers=new Headers({'Content-Type':'application/json'});
-        headers.append('Set-Cookie',`admin_session=${sessionVal}; Path=/; Max-Age=${60*60*24*30}; SameSite=Lax`);
+        const isHttps = r.url.startsWith('https:') || r.headers.get('x-forwarded-proto') === 'https';
+        const secureFlag = isHttps ? '; Secure' : '';
+        const headers = new Headers({'Content-Type':'application/json'});
+        headers.append('Set-Cookie', `admin_session=${sessionVal}; Path=/; Max-Age=${60*60*24*30}; SameSite=Lax${secureFlag}`);
         return new Response(JSON.stringify({ok:true, session: sessionVal}),{status:200,headers});
       }
       return Response.json({error:'اسم المستخدم أو كلمة المرور غير صحيحة'},{status:400});
     }
 
     if(x.action==='logout'){
-      const headers=new Headers({'Content-Type':'application/json'});
-      headers.append('Set-Cookie','admin_session=; Path=/; Max-Age=0; SameSite=Lax');
+      const isHttps = r.url.startsWith('https:') || r.headers.get('x-forwarded-proto') === 'https';
+      const secureFlag = isHttps ? '; Secure' : '';
+      const headers = new Headers({'Content-Type':'application/json'});
+      headers.append('Set-Cookie', `admin_session=; Path=/; Max-Age=0; SameSite=Lax${secureFlag}`);
       return new Response(JSON.stringify({ok:true}),{status:200,headers});
     }
 

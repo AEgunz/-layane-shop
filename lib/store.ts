@@ -1,20 +1,51 @@
-import {getChatGPTUser} from '@/app/chatgpt-auth';
+import {DatabaseSync} from 'node:sqlite';
 import {ZodError} from 'zod';
+import {headers, cookies} from 'next/headers';
 import path from 'node:path';
 import fs from 'node:fs';
-import {headers, cookies} from 'next/headers';
+import {getChatGPTUser} from '@/app/chatgpt-auth';
 
-export const defaultBrand={name:'layane-shop',tagline:'Care for your everyday',color:'#205b44',logo:'/logo.png',phone:'+212660286462',pixelId:'1116296790985534',currency:'MAD'};
+export const defaultBrand = {
+  name: 'layane-shop',
+  tagline: 'STORE STUDIO',
+  color: '#205b44',
+  logo: '/logo.png',
+  phone: '+212660286462',
+  pixelId: '1116296790985534',
+  currency: 'MAD'
+};
 
-let nodeD1Instance: any = null;
+class D1Stmt {
+  db: any; sql: string; params: any[];
+  constructor(db: any, sql: string, params: any[] = []) {
+    this.db = db; this.sql = sql; this.params = params;
+  }
+  bind(...args: any[]) { return new D1Stmt(this.db, this.sql, args); }
+  async first(col?: string) {
+    const stmt = this.db.prepare(this.sql);
+    const row = stmt.get(...this.params);
+    if (!row) return null;
+    if (col && typeof col === 'string') return row[col];
+    return row;
+  }
+  async all() {
+    const stmt = this.db.prepare(this.sql);
+    const rows = stmt.all(...this.params);
+    return { results: rows, success: true };
+  }
+  async run() {
+    const stmt = this.db.prepare(this.sql);
+    const info = stmt.run(...this.params);
+    return { success: true, meta: { changes: info.changes } };
+  }
+}
 
 function getSupabaseD1() {
-  const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!url) return null;
+  const cleanUrl = url.replace(/\/$/, '');
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_API_KEY;
-
-  if (!supabaseUrl || !supabaseKey) return null;
-
-  const cleanUrl = supabaseUrl.replace(/\/$/, '');
+  if (!supabaseKey) return null;
 
   class SupabaseStmt {
     sql: string; params: any[];
@@ -25,30 +56,19 @@ function getSupabaseD1() {
 
     async execApi() {
       try {
-        // The homepage needs row IDs to resolve main_home_page_id, as well as
-        // the saved content. Do not fall through to the empty-query result.
-        if (this.sql === "SELECT id, slug, data FROM pages WHERE status='published'") {
-          const res = await fetch(`${cleanUrl}/rest/v1/pages?status=eq.published&select=id,slug,data`, {
-            cache: 'no-store',
-            headers: { 'apikey': supabaseKey!, 'Authorization': `Bearer ${supabaseKey}` }
-          });
-          if (!res.ok) throw new Error(`Published pages read failed (${res.status})`);
-          const data = await res.json();
-          if (!Array.isArray(data)) throw new Error('Invalid published pages response');
-          return data;
-        }
-
-        if (this.sql.includes('SELECT data FROM pages')) {
+        if (this.sql.includes('SELECT') && this.sql.includes('pages')) {
           if (this.sql.includes("WHERE slug=?")) {
             const slug = this.params[0];
             const res = await fetch(`${cleanUrl}/rest/v1/pages?slug=eq.${encodeURIComponent(slug)}&status=eq.published&select=data`, {
-              headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` }
+              headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` },
+              cache: 'no-store'
             });
             const data = await res.json();
             return data || [];
           }
-          const res = await fetch(`${cleanUrl}/rest/v1/pages?select=data`, {
-            headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` }
+          const res = await fetch(`${cleanUrl}/rest/v1/pages?status=eq.published&select=id,slug,data`, {
+            headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` },
+            cache: 'no-store'
           });
           const data = await res.json();
           return data || [];
@@ -206,11 +226,13 @@ function getSupabaseD1() {
           });
           const data = await res.json();
           if (Array.isArray(data)) {
-            return data.map((item: any) => ({
-              page_id: item.page_id,
-              day: item.day,
-              count: Number(item.count || 1)
-            }));
+            const grouped: any = {};
+            data.forEach((r: any) => {
+              const k = `${r.page_id}_${r.day}`;
+              if (!grouped[k]) grouped[k] = { page_id: r.page_id, day: r.day, count: 0 };
+              grouped[k].count += Number(r.count || 1);
+            });
+            return Object.values(grouped);
           }
           return [];
         }
@@ -304,10 +326,11 @@ function getTursoD1() {
           })
         });
         const data = await res.json();
-        const results = data?.results?.[0]?.response?.result;
+        const results = data.results?.[0]?.response?.result;
         if (!results || !results.rows) return [];
+
         const cols = results.cols.map((c: any) => c.name);
-        return results.rows.map((row: any[]) => {
+        return results.rows.map((row: any) => {
           const obj: any = {};
           cols.forEach((col: string, idx: number) => {
             obj[col] = row[idx]?.value;
@@ -315,7 +338,7 @@ function getTursoD1() {
           return obj;
         });
       } catch (err) {
-        console.error('Turso API Exec Error:', err);
+        console.error('Turso Exec Error:', err);
         return [];
       }
     }
@@ -341,41 +364,15 @@ function getTursoD1() {
   };
 }
 
+let nodeD1Instance: any = null;
 function getNodeD1() {
   if (nodeD1Instance) return nodeD1Instance;
   try {
-    const { DatabaseSync } = require('node:sqlite');
-    const dbDir = path.join(process.cwd(), '.data');
-    if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
-    const dbPath = path.join(dbDir, 'store.db');
-
-    class D1Stmt {
-      db: any; sql: string; params: any[];
-      constructor(db: any, sql: string, params: any[] = []) {
-        this.db = db; this.sql = sql; this.params = params;
-      }
-      bind(...args: any[]) { return new D1Stmt(this.db, this.sql, args); }
-      async first(col?: string) {
-        const stmt = this.db.prepare(this.sql);
-        const row = stmt.get(...this.params);
-        if (!row) return null;
-        if (col && typeof col === 'string') return row[col];
-        return row;
-      }
-      async all() {
-        const stmt = this.db.prepare(this.sql);
-        const results = stmt.all(...this.params);
-        return { results, success: true };
-      }
-      async run() {
-        const stmt = this.db.prepare(this.sql);
-        const info = stmt.run(...this.params);
-        return {
-          success: true,
-          meta: { changes: info.changes, last_row_id: info.lastInsertRowid }
-        };
-      }
+    const dataDir = path.join(process.cwd(), '.data');
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
     }
+    const dbPath = path.join(dataDir, 'store.db');
 
     class NodeD1 {
       db: any;
@@ -462,17 +459,55 @@ export async function getAdmins() {
   ];
 }
 
-export async function getCurrentAdminInfo() {
-  let session = '';
+export async function getCookieVal(name: string): Promise<string> {
   try {
     const cookieStore = await cookies();
-    session = cookieStore.get('admin_session')?.value || '';
+    const val = cookieStore.get(name)?.value;
+    if (val) return val;
   } catch {}
+
+  try {
+    if (typeof (globalThis as any).cookies === 'function') {
+      const cookieStore = await (globalThis as any).cookies();
+      const val = cookieStore?.get?.(name)?.value;
+      if (val) return val;
+    }
+  } catch {}
+
+  return '';
+}
+
+export async function getHeaderVal(name: string): Promise<string> {
+  try {
+    const h = await headers();
+    if (h && typeof h.get === 'function') {
+      const val = h.get(name) || h.get(name.toLowerCase()) || h.get(name.toUpperCase());
+      if (val) return val;
+    }
+  } catch {}
+
+  try {
+    if (typeof (globalThis as any).headers === 'function') {
+      const h = await (globalThis as any).headers();
+      if (h && typeof h.get === 'function') {
+        const val = h.get(name) || h.get(name.toLowerCase()) || h.get(name.toUpperCase());
+        if (val) return val;
+      }
+    }
+  } catch {}
+
+  return '';
+}
+
+export async function getCurrentAdminInfo() {
+  let session = await getCookieVal('admin_session');
 
   if (!session) {
     try {
-      const reqHeaders = await headers();
-      session = reqHeaders.get('cookie') || reqHeaders.get('authorization') || reqHeaders.get('x-session') || '';
+      const cookieHeader = await getHeaderVal('cookie');
+      const authHeader = await getHeaderVal('authorization');
+      const sessionHeader = await getHeaderVal('x-session');
+      session = `${cookieHeader} ${authHeader} ${sessionHeader}`;
     } catch {}
   }
 
@@ -494,8 +529,7 @@ export async function getCurrentAdminInfo() {
 
 export async function getSessionPermissions() {
   try {
-    const cookieStore = await cookies();
-    const session = cookieStore.get('admin_session')?.value || '';
+    const session = await getCookieVal('admin_session');
     if (session.startsWith('logged_in:')) {
       const parts = session.split(':');
       if (parts[2]) {
@@ -505,10 +539,13 @@ export async function getSessionPermissions() {
   } catch {}
 
   try {
-    const reqHeaders = await headers();
-    const cookieHeader = reqHeaders.get('cookie') || reqHeaders.get('authorization') || reqHeaders.get('x-session') || '';
-    if (cookieHeader.includes('logged_in:')) {
-      const match = cookieHeader.match(/logged_in:[^:]+:([^;\s]+)/);
+    const cookieHeader = await getHeaderVal('cookie');
+    const authHeader = await getHeaderVal('authorization');
+    const sessionHeader = await getHeaderVal('x-session');
+    const fullHeaderStr = `${cookieHeader} ${authHeader} ${sessionHeader}`;
+
+    if (fullHeaderStr.includes('logged_in:')) {
+      const match = fullHeaderStr.match(/logged_in:[^:]+:([^;\s]+)/);
       if (match && match[1]) {
         return JSON.parse(decodeURIComponent(match[1]));
       }
@@ -520,9 +557,8 @@ export async function getSessionPermissions() {
 
 export async function admin(){
   try {
-    const cookieStore = await cookies();
-    const session = cookieStore.get('admin_session');
-    if (session && session.value.startsWith('logged_in')) {
+    const session = await getCookieVal('admin_session');
+    if (session && session.startsWith('logged_in')) {
       return {
         userId: 'admin-owner',
         displayName: 'Store Administrator',
@@ -533,9 +569,12 @@ export async function admin(){
   } catch {}
 
   try {
-    const reqHeaders = await headers();
-    const cookieHeader = reqHeaders.get('cookie') || reqHeaders.get('authorization') || reqHeaders.get('x-session') || '';
-    if (cookieHeader.includes('admin_session=logged_in') || cookieHeader.includes('logged_in:')) {
+    const cookieHeader = await getHeaderVal('cookie');
+    const authHeader = await getHeaderVal('authorization');
+    const sessionHeader = await getHeaderVal('x-session');
+    const fullHeaderStr = `${cookieHeader} ${authHeader} ${sessionHeader}`;
+
+    if (fullHeaderStr.includes('admin_session=logged_in') || fullHeaderStr.includes('logged_in:')) {
       return {
         userId: 'admin-owner',
         displayName: 'Store Administrator',

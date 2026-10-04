@@ -45,9 +45,14 @@ function playNotificationChime() {
 
 async function api(body?:any){
   let sessionToken = '';
-  if (typeof window !== 'undefined' && typeof document !== 'undefined') {
-    const match = document.cookie.match(/admin_session=([^;]+)/);
-    if (match) sessionToken = match[1];
+  if (typeof window !== 'undefined') {
+    if (typeof document !== 'undefined' && document.cookie) {
+      const match = document.cookie.match(/(?:^|;\s*)admin_session=([^;]+)/);
+      if (match && match[1]) sessionToken = match[1];
+    }
+    if (!sessionToken) {
+      sessionToken = safeLocalStorageGet('layane_admin_session') || '';
+    }
   }
 
   const reqHeaders: any = { 'Content-Type': 'application/json' };
@@ -624,7 +629,11 @@ export default function Studio(){
       try { d = JSON.parse(resText); } catch { throw new Error(resText || 'خطأ في الاتصال بالخادم'); }
       if (!res.ok) throw new Error(d.error || 'اسم المستخدم أو كلمة المرور غير صحيحة');
       if (d.session) {
-        document.cookie = `admin_session=${d.session}; path=/; max-age=2592000; SameSite=Lax`;
+        if (typeof document !== 'undefined') {
+          const isHttps = location.protocol === 'https:';
+          document.cookie = `admin_session=${d.session}; path=/; max-age=2592000; SameSite=Lax${isHttps ? '; Secure' : ''}`;
+        }
+        safeLocalStorageSet('layane_admin_session', d.session);
       }
       await reload(false);
     } catch(err:any){
@@ -641,7 +650,10 @@ export default function Studio(){
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'logout' })
       });
-      document.cookie = 'admin_session=; path=/; max-age=0; SameSite=Lax';
+      if (typeof document !== 'undefined') {
+        document.cookie = 'admin_session=; path=/; max-age=0; SameSite=Lax';
+      }
+      safeLocalStorageSet('layane_admin_session', '');
       setData(null);
       setError('AUTH');
     } catch {}
