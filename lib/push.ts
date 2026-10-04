@@ -1,11 +1,8 @@
 import webpush, {type PushSubscription} from 'web-push';
 import {createHash} from 'node:crypto';
-import fs from 'node:fs';
-import path from 'node:path';
 import {putPushSetting, deletePushSetting, listPushSubscriptions, orderWasSaved, newOrderCount} from './push-storage';
 
 const prefix = 'push-subscription:';
-let autoKeys: {publicKey: string; privateKey: string; subject: string} | null = null;
 
 export function pushConfig() {
   const publicKey = process.env.VAPID_PUBLIC_KEY;
@@ -16,44 +13,22 @@ export function pushConfig() {
     return {publicKey, privateKey, subject};
   }
 
-  if (autoKeys) return autoKeys;
-
-  try {
-    const dataDir = path.join(process.cwd(), '.data');
-    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, {recursive: true});
-    const keyFile = path.join(dataDir, 'vapid.json');
-    if (fs.existsSync(keyFile)) {
-      autoKeys = JSON.parse(fs.readFileSync(keyFile, 'utf8'));
-      if (autoKeys?.publicKey && autoKeys?.privateKey) return autoKeys;
-    }
-    const generated = webpush.generateVAPIDKeys();
-    autoKeys = {
-      publicKey: generated.publicKey,
-      privateKey: generated.privateKey,
-      subject
-    };
-    fs.writeFileSync(keyFile, JSON.stringify(autoKeys, null, 2));
-    return autoKeys;
-  } catch {
-    const generated = webpush.generateVAPIDKeys();
-    autoKeys = {
-      publicKey: generated.publicKey,
-      privateKey: generated.privateKey,
-      subject
-    };
-    return autoKeys;
-  }
+  throw new Error('VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY environment variables are required.');
 }
 
-// Only accept browser push services; never fetch arbitrary subscription URLs.
 export function validPushEndpoint(endpoint: string) {
   try {
     const url = new URL(endpoint);
-    return url.protocol === 'https:' && !url.username && !url.password && !url.port && (
-      url.hostname === 'fcm.googleapis.com' ||
-      url.hostname === 'updates.push.services.mozilla.com' ||
-      url.hostname === 'web.push.apple.com' ||
-      url.hostname.endsWith('.notify.windows.com')
+    if (url.protocol !== 'https:' || url.username || url.password || url.port) return false;
+    const host = url.hostname.toLowerCase();
+    return (
+      host === 'fcm.googleapis.com' ||
+      host.endsWith('.googleapis.com') ||
+      host === 'updates.push.services.mozilla.com' ||
+      host.endsWith('.push.services.mozilla.com') ||
+      host === 'web.push.apple.com' ||
+      host.endsWith('.push.apple.com') ||
+      host.endsWith('.notify.windows.com')
     );
   } catch { return false; }
 }
@@ -73,11 +48,15 @@ export async function removeSubscription(endpoint: string) {
 export async function sendPush(subscription: PushSubscription, payload: {title: string; body: string; tag: string; badgeCount?: number}) {
   if (!validPushEndpoint(subscription.endpoint)) throw new Error('Invalid push service');
   const request = webpush.generateRequestDetails(subscription, JSON.stringify(payload), {
-    vapidDetails: pushConfig(), TTL: 86400, urgency: 'high',
+    vapidDetails: pushConfig(),
+    TTL: 86400,
+    urgency: 'high',
   });
   const response = await fetch(request.endpoint, {
-    method: 'POST', headers: request.headers as Record<string, string>,
-    body: new Uint8Array(request.body!), redirect: 'error',
+    method: 'POST',
+    headers: request.headers as Record<string, string>,
+    body: new Uint8Array(request.body!),
+    redirect: 'error',
     signal: AbortSignal.timeout(8000),
   });
   if (response.status === 404 || response.status === 410) {
@@ -86,22 +65,29 @@ export async function sendPush(subscription: PushSubscription, payload: {title: 
   if (!response.ok) throw new Error(`Push service rejected notification (${response.status})`);
 }
 
-export async function notifyNewOrder(id: string) {
+export async function notifyNewOrder(id: string, details?: { customer?: string; city?: string; total?: number; product?: string }) {
   try {
-    if (!await orderWasSaved(id)) return;
+    if (!details && !await orderWasSaved(id)) return;
     const rows = await listPushSubscriptions();
-    if (!rows.length) return;
+    if (!rows || !rows.length) return;
     const badgeCount = await newOrderCount().catch(() => undefined);
+
+    let bodyText = `وصلك طلب جديد #${id.slice(0, 8).toUpperCase()}. اضغط هنا لمعاينة التفاصيل.`;
+    if (details?.customer && details?.total) {
+      bodyText = `الزبون: ${details.customer} (${details.city || ''}) • المجموع: ${details.total} DH`;
+    }
+
     await Promise.all(rows.map(async (row: {value: string}) => {
       try {
-        await sendPush(JSON.parse(row.value), {
+        const sub = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
+        await sendPush(sub, {
           title: '🚨 طلب جديد في متجر layane-shop!',
-          body: `وصلك طلب جديد #${id.slice(0, 8).toUpperCase()}. اضغط هنا لمعاينة تفاصيل الزبون والطلب.`,
+          body: bodyText,
           tag: `order-${id}`,
           badgeCount,
         });
       } catch (error) {
-        console.error('Order push failed:', error instanceof Error ? error.message : 'Unknown error');
+        console.error('Order push failed for subscription:', error instanceof Error ? error.message : 'Unknown error');
       }
     }));
   } catch (error) {

@@ -1,16 +1,16 @@
 import {db} from './store';
 
-// Keep push storage independent from the storefront's legacy SQL adapter.
 function supabase() {
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
   if (!url) return null;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!key) throw new Error('Push storage requires SUPABASE_SERVICE_ROLE_KEY on the server.');
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!key) return null;
   return {url: url.replace(/\/$/, ''), key};
 }
 
 async function rest(path: string, init: RequestInit = {}) {
-  const config = supabase()!;
+  const config = supabase();
+  if (!config) throw new Error('Push storage requires database configuration.');
   const response = await fetch(`${config.url}/rest/v1/${path}`, {
     ...init,
     headers: {apikey: config.key, Authorization: `Bearer ${config.key}`, 'Content-Type': 'application/json', ...init.headers},
@@ -37,7 +37,7 @@ export async function deletePushSetting(key: string) {
 }
 
 export async function listPushSubscriptions(): Promise<{value: string}[]> {
-  if (supabase()) return rest('settings?key=like.push-subscription:*&select=value');
+  if (supabase()) return rest('settings?key=like.push-subscription:%25&select=value');
   const rows = await db().prepare('SELECT value FROM settings WHERE key LIKE ?').bind('push-subscription:%').all();
   return rows.results || [];
 }

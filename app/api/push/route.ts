@@ -7,8 +7,8 @@ export const dynamic = 'force-dynamic';
 const subscriptionSchema = z.object({
   endpoint: z.string().max(2048).refine(validPushEndpoint),
   keys: z.object({
-    p256dh: z.string().regex(/^[A-Za-z0-9_-]{87}={0,2}$/),
-    auth: z.string().regex(/^[A-Za-z0-9_-]{22}={0,2}$/),
+    p256dh: z.string().min(16).max(512),
+    auth: z.string().min(8).max(256),
   }),
 });
 
@@ -31,8 +31,6 @@ function pushError(e: unknown) {
 
 function checkOrigin(request: Request) {
   originCheck(request);
-  const origin = request.headers.get('origin');
-  if (origin && origin !== new URL(request.url).origin) throw new Error('FORBIDDEN');
 }
 
 export async function GET() {
@@ -50,7 +48,7 @@ export async function POST(request: Request) {
     pushConfig();
     await saveSubscription(body.subscription);
     if (body.test) await sendPush(body.subscription, {
-      title: 'إشعارات layane-shop مفعّلة',
+      title: 'إشعارات layane-shop مفعّلة 🔔',
       body: 'هذا إشعار تجريبي. ستصلك الطلبات الجديدة على هذا الجهاز حتى عندما تكون نافذة التطبيق مغلقة.',
       tag: 'layane-push-test',
     });
