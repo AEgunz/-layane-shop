@@ -109,11 +109,26 @@ function getSupabaseD1() {
           return [];
         }
 
+        if (this.sql.includes('DELETE FROM pages')) {
+          const id = this.params[0];
+          if (id) {
+            await fetch(`${cleanUrl}/rest/v1/pages?id=eq.${encodeURIComponent(id)}`, {
+              method: 'DELETE',
+              headers: {
+                'apikey': supabaseKey,
+                'Authorization': `Bearer ${supabaseKey}`
+              }
+            });
+          }
+          return [];
+        }
+
         if (this.sql.includes('SELECT value FROM settings')) {
           let key = 'brand';
           if (this.params[0]) key = String(this.params[0]);
           else if (this.sql.includes("'brand'")) key = 'brand';
           else if (this.sql.includes("'admins'")) key = 'admins';
+          else if (this.sql.includes("'main_home_page_id'")) key = 'main_home_page_id';
 
           const res = await fetch(`${cleanUrl}/rest/v1/settings?key=eq.${encodeURIComponent(key)}&select=value`, {
             headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` }
@@ -127,6 +142,7 @@ function getSupabaseD1() {
           if (this.params[0]) key = String(this.params[0]);
           else if (this.sql.includes("'brand'")) key = 'brand';
           else if (this.sql.includes("'admins'")) key = 'admins';
+          else if (this.sql.includes("'main_home_page_id'")) key = 'main_home_page_id';
 
           await fetch(`${cleanUrl}/rest/v1/settings?key=eq.${encodeURIComponent(key)}`, {
             method: 'DELETE',
@@ -149,31 +165,25 @@ function getSupabaseD1() {
             value = String(this.params[0]);
             if (this.sql.includes("'brand'")) key = 'brand';
             else if (this.sql.includes("'admins'")) key = 'admins';
+            else if (this.sql.includes("'main_home_page_id'")) key = 'main_home_page_id';
           }
 
-          if (key.startsWith('[') || key.startsWith('{')) {
-            key = this.sql.includes("'brand'") ? 'brand' : 'admins';
+          if (key === 'main_home_page_id' || key === 'brand' || key === 'admins') {
+            await fetch(`${cleanUrl}/rest/v1/settings?key=eq.${encodeURIComponent(key)}`, {
+              method: 'DELETE',
+              headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` }
+            }).catch(() => {});
+
+            await fetch(`${cleanUrl}/rest/v1/settings`, {
+              method: 'POST',
+              headers: {
+                'apikey': supabaseKey,
+                'Authorization': `Bearer ${supabaseKey}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ key, value })
+            });
           }
-
-          await fetch(`${cleanUrl}/rest/v1/settings?key=eq.${encodeURIComponent(key)}`, {
-            method: 'DELETE',
-            headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` }
-          });
-
-          await fetch(`${cleanUrl}/rest/v1/settings?value=is.null`, {
-            method: 'DELETE',
-            headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` }
-          });
-
-          await fetch(`${cleanUrl}/rest/v1/settings`, {
-            method: 'POST',
-            headers: {
-              'apikey': supabaseKey,
-              'Authorization': `Bearer ${supabaseKey}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ key, value })
-          });
           return [];
         }
 
