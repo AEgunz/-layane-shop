@@ -697,6 +697,9 @@ export default function Studio(){
               required
               autoFocus
               dir="ltr"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               placeholder="ادخل اسم المستخدم"
               autoComplete="username"
             />
@@ -708,8 +711,11 @@ export default function Studio(){
               value={password}
               onChange={e => setPassword(e.target.value)}
               required
-              placeholder="••••••••"
               dir="ltr"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              placeholder="••••••••"
               autoComplete="current-password"
             />
           </label>
