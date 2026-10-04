@@ -4,6 +4,32 @@ import {ShoppingBag,Star,ShieldCheck,Truck,RotateCcw,ChevronDown,Check,Plus,Minu
 
 const money=(n:number)=>new Intl.NumberFormat('en-MA',{maximumFractionDigits:2}).format(n)+' DH';
 
+const defaultQtyOptions=[
+  {qty:1,labelAr:'قطعة واحدة',labelEn:'1 Piece',badgeAr:'',badgeEn:'',price:0,enabled:true},
+  {qty:2,labelAr:'قطعتين (تخفيض خاص)',labelEn:'2 Pieces',badgeAr:'الأكثر طلباً 🔥',badgeEn:'Most Popular',price:0,enabled:true},
+  {qty:3,labelAr:'3 قطع (عرض العائلة)',labelEn:'3 Pieces',badgeAr:'أفضل قيمة 🎁',badgeEn:'Best Value',price:0,enabled:true}
+];
+
+function resolveQtyOptions(p:any,ar:boolean){
+  const raw=Array.isArray(p?.qtyOptions)?p.qtyOptions:null;
+  let opts=(raw&&raw.length?raw:defaultQtyOptions).filter((o:any)=>o&&o.enabled!==false);
+  if(!opts.length)opts=defaultQtyOptions.slice(0,1);
+  return opts
+    .slice()
+    .sort((a:any,b:any)=>(a.qty||0)-(b.qty||0))
+    .map((o:any)=>({
+      qty:o.qty||1,
+      price:typeof o.price==='number'?o.price:0,
+      label:(ar?(o.labelAr||o.labelEn):(o.labelEn||o.labelAr))||String(o.qty||1),
+      badge:ar?(o.badgeAr||o.badgeEn||''):(o.badgeEn||o.badgeAr||'')
+    }));
+}
+
+function optionTotal(opt:any,unitPrice:number){
+  if(!opt)return unitPrice;
+  return opt.price>0?opt.price:unitPrice*(opt.qty||1);
+}
+
 export function Logo({brand}:any){
   return (
     <a href="/" className="brandlogo">
@@ -86,7 +112,9 @@ function OrderFormSection({
   }
 
   const unitPrice = p.price ?? 0;
-  const total = unitPrice * quantity + (p.shipping || 0);
+  const qtyOptions = resolveQtyOptions(p, ar);
+  const selectedOption = qtyOptions.find((o: any) => o.qty === quantity) || qtyOptions[0];
+  const total = optionTotal(selectedOption, unitPrice) + (p.shipping || 0);
   const productName = p.name || '';
 
   return (
@@ -158,11 +186,7 @@ function OrderFormSection({
         <div className="quantity-selection-box">
           <label className="qty-label">{ar ? 'اختر الكمية المطلوبة:' : 'Quantity Options:'}</label>
           <div className="qty-pills">
-            {[
-              { qty: 1, label: ar ? 'قطعة واحدة' : '1 Piece', badge: '' },
-              { qty: 2, label: ar ? 'قطعتين (تخفيض خاص)' : '2 Pieces', badge: ar ? 'الأكثر طلباً 🔥' : 'Most Popular' },
-              { qty: 3, label: ar ? '3 قطع (عرض العائلة)' : '3 Pieces', badge: ar ? 'أفضل قيمة 🎁' : 'Best Value' }
-            ].map(opt => (
+            {qtyOptions.map((opt: any) => (
               <button
                 type="button"
                 key={opt.qty}
@@ -171,7 +195,7 @@ function OrderFormSection({
               >
                 {opt.badge && <span className="pill-badge">{opt.badge}</span>}
                 <span className="pill-text">{opt.label}</span>
-                <span className="pill-price">{money(unitPrice * opt.qty)}</span>
+                <span className="pill-price">{money(optionTotal(opt, unitPrice))}</span>
               </button>
             ))}
           </div>
@@ -283,6 +307,16 @@ export function ProductView({page,brand,preview}:any){
     }
   }, [brand?.pixelId, p, productName]);
 
+  const availableQtyOptions = resolveQtyOptions(p, ar);
+  const optionQtyKey = availableQtyOptions.map((o: any) => o.qty).join(',');
+
+  useEffect(() => {
+    if (!availableQtyOptions.some((o: any) => o.qty === quantity)) {
+      setQuantity(availableQtyOptions[0]?.qty || 1);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [optionQtyKey]);
+
   function scrollToCheckout() {
     const el = document.getElementById('checkout-form');
     if (el) {
@@ -338,7 +372,11 @@ export function ProductView({page,brand,preview}:any){
     const phoneVal = String(f.get('phone') || formState.phone);
     const cityVal = String(f.get('city') || formState.city);
     const addressVal = String(f.get('address') || formState.address);
-    const totalAmount = (p.price ?? 0) * quantity + (p.shipping || 0);
+    const orderOptions = resolveQtyOptions(p, ar);
+    const orderOption = orderOptions.find((o: any) => o.qty === quantity) || orderOptions[0];
+    const bundleTotal = optionTotal(orderOption, p.price ?? 0);
+    const effectiveUnitPrice = orderOption && orderOption.qty ? +(bundleTotal / orderOption.qty).toFixed(2) : (p.price ?? 0);
+    const totalAmount = bundleTotal + (p.shipping || 0);
 
     try{
       const res=await fetch('/api/public',{
@@ -347,7 +385,7 @@ export function ProductView({page,brand,preview}:any){
         body:JSON.stringify({
           action:'order',
           slug:p.slug,
-          price:p.price,
+          price:effectiveUnitPrice,
           shipping:p.shipping,
           productName,
           id,

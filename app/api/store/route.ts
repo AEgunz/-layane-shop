@@ -23,6 +23,15 @@ const pageSchema=z.object({
   sections:z.array(z.object({title:z.string().max(150),text:z.string().max(2000),image:z.string().max(10000000)})).optional().default([]),
   faq:z.array(z.object({q:z.string().max(300),a:z.string().max(2000)})).optional().default([]),
   reviews:z.array(reviewSchema).optional().default([]),
+  qtyOptions:z.array(z.object({
+    qty:z.number().int().min(1).max(100),
+    labelAr:z.string().max(100).default(''),
+    labelEn:z.string().max(100).default(''),
+    badgeAr:z.string().max(60).default(''),
+    badgeEn:z.string().max(60).default(''),
+    price:z.number().min(0).max(1000000).default(0),
+    enabled:z.boolean().default(true)
+  })).max(10).optional().default([]),
   createdAt:z.string()
 });
 

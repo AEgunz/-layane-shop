@@ -673,7 +673,10 @@ export default function Studio(){
   async function save(body:any,message:string){setBusy(true);setError('');try{await api(body);const d=await reload(false);setToast(message);return d}catch(e:any){setError(e.message);return null}finally{setBusy(false)}}
   async function savePage(status?:string){const p={...editor,status:status||editor.status};const result=await save({action:'page',page:p},p.status==='published'?'Page published. Your storefront is ready.':'Page saved.');if(result)setEditor(p)}
   async function duplicate(p:any){const id=crypto.randomUUID();const cp={...p,id,slug:p.slug+'-'+id.slice(0,5),name:p.name+' (copy)',status:'draft',createdAt:new Date().toISOString()};const result=await save({action:'page',page:cp},'Page duplicated as a draft.');if(result){setEditor(cp)}}
-  function newPage(){const id=crypto.randomUUID();setEditor({id,name:'Untitled product',slug:'product-'+id.slice(0,8),price:199,comparePrice:0,shipping:0,status:'draft',template:'editorial',language:'ar',headline:'',description:'',image:'',images:[],reviewsImage:'',customHtml:'',benefits:'',cta:'اطلب الآن',sections:[],faq:[],createdAt:new Date().toISOString()});setTab('Landing pages')}
+  function newPage(){const id=crypto.randomUUID();setEditor({id,name:'Untitled product',slug:'product-'+id.slice(0,8),price:199,comparePrice:0,shipping:0,status:'draft',template:'editorial',language:'ar',headline:'',description:'',image:'',images:[],reviewsImage:'',customHtml:'',benefits:'',cta:'اطلب الآن',sections:[],faq:[],qtyOptions:[{qty:1,labelAr:'قطعة واحدة',labelEn:'1 Piece',badgeAr:'',badgeEn:'',price:0,enabled:true},{qty:2,labelAr:'قطعتين (تخفيض خاص)',labelEn:'2 Pieces',badgeAr:'الأكثر طلباً 🔥',badgeEn:'Most Popular',price:0,enabled:true},{qty:3,labelAr:'3 قطع (عرض العائلة)',labelEn:'3 Pieces',badgeAr:'أفضل قيمة 🎁',badgeEn:'Best Value',price:0,enabled:true}],createdAt:new Date().toISOString()});setTab('Landing pages')}
+  function setQtyOpt(i:number,patch:any){const opts=Array.isArray(editor.qtyOptions)?[...editor.qtyOptions]:[];if(!opts[i])return;opts[i]={...opts[i],...patch};setEditor({...editor,qtyOptions:opts})}
+  function removeQtyOpt(i:number){const opts=(Array.isArray(editor.qtyOptions)?editor.qtyOptions:[]).filter((_:any,idx:number)=>idx!==i);setEditor({...editor,qtyOptions:opts})}
+  function addQtyOpt(){const opts=Array.isArray(editor.qtyOptions)?[...editor.qtyOptions]:[];const nextQty=opts.length?Math.max(...opts.map((o:any)=>o.qty||1))+1:1;opts.push({qty:nextQty,labelAr:'',labelEn:'',badgeAr:'',badgeEn:'',price:0,enabled:true});setEditor({...editor,qtyOptions:opts})}
   function exportOrders(rows:any[]){const fields=['id','customer','phone','city','address','product','quantity','unit_price','shipping','total','status','created_at','notes'];const cell=(x:any)=>'"'+String(x??'').replace(/^[=+@-]/,"'$&").replaceAll('"','""')+'"';const csv='\uFEFF'+[fields.join(','),...rows.map(o=>fields.map(k=>cell(o[k])).join(','))].join('\r\n');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));const a=document.createElement('a');a.href=url;a.download='layane-shop-orders.csv';a.click();URL.revokeObjectURL(url)}
 
   if (!data) {
@@ -889,6 +892,31 @@ export default function Studio(){
                     <div className="formgrid"><label>السعر (Price DH)<input type="number" min="1" step="0.01" value={editor.price} onChange={e=>setEditor({...editor,price:+e.target.value})}/></label><label>السعر قبل التخفيض (DH)<input type="number" min="0" step="0.01" value={editor.comparePrice} onChange={e=>setEditor({...editor,comparePrice:+e.target.value})}/></label></div>
                     <div className="formgrid"><label>مصاريف التوصيل (DH)<input type="number" min="0" step="0.01" value={editor.shipping} onChange={e=>setEditor({...editor,shipping:+e.target.value})}/><small>0 = توصيل مجاني</small></label><label>نص زر الطلب<input dir="auto" value={editor.cta||'اطلب الآن'} onChange={e=>setEditor({...editor,cta:e.target.value})}/></label></div>
                     <label>لغة الصفحة<select value={editor.language||'ar'} onChange={e=>setEditor({...editor,language:e.target.value})}><option value="ar">العربية (right to left)</option><option value="en">English</option><option value="fr">Français</option></select></label>
+                  </div>
+
+                  <div className="fieldsection">
+                    <h3>خيارات الكمية والعروض (Quantity &amp; Bundle Options)</h3>
+                    <p style={{fontSize:'12px',color:'#5c6f62',margin:'-6px 0 12px',lineHeight:'1.6'}}>هذه الخيارات تظهر في خانة «اختر الكمية المطلوبة» بنموذج الطلب. اترك «الثمن الإجمالي» = 0 ليتم حسابه تلقائياً (سعر القطعة × الكمية)، أو أدخل ثمناً خاصاً للعرض.</p>
+                    {(Array.isArray(editor.qtyOptions)?editor.qtyOptions:[]).map((opt:any,i:number)=>(
+                      <div key={i} style={{background:'#fff',border:'1px solid #dce4db',borderRadius:'8px',padding:'12px',marginBottom:'10px'}}>
+                        <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'10px'}}>
+                          <label style={{display:'inline-flex',alignItems:'center',gap:'6px',fontSize:'13px',fontWeight:'700',cursor:'pointer',margin:0}}>
+                            <input type="checkbox" checked={opt.enabled!==false} onChange={e=>setQtyOpt(i,{enabled:e.target.checked})}/> خيار مفعّل
+                          </label>
+                          <strong style={{marginInlineStart:'auto',fontSize:'12px',color:'#8aa191'}}>{opt.qty} {opt.qty===1?'قطعة':'قطع'}</strong>
+                          <button type="button" className="iconbutton" title="حذف هذا الخيار" onClick={()=>removeQtyOpt(i)}><Trash2 size={15}/></button>
+                        </div>
+                        <div className="formgrid">
+                          <label>الكمية<input type="number" min="1" max="100" value={opt.qty} onChange={e=>setQtyOpt(i,{qty:Math.max(1,Math.min(100,parseInt(e.target.value)||1))})}/></label>
+                          <label>الثمن الإجمالي (DH)<input type="number" min="0" step="0.01" value={opt.price||0} onChange={e=>setQtyOpt(i,{price:Math.max(0,parseFloat(e.target.value)||0)})}/><small>0 = تلقائي (السعر × الكمية)</small></label>
+                        </div>
+                        <label>التسمية (عربي)<input dir="auto" maxLength={100} value={opt.labelAr||''} onChange={e=>setQtyOpt(i,{labelAr:e.target.value})}/></label>
+                        <label>التسمية (English / Français)<input dir="auto" maxLength={100} value={opt.labelEn||''} onChange={e=>setQtyOpt(i,{labelEn:e.target.value})}/></label>
+                        <label>الشارة (عربي) — مثال: الأكثر طلباً 🔥<input dir="auto" maxLength={60} value={opt.badgeAr||''} onChange={e=>setQtyOpt(i,{badgeAr:e.target.value})}/></label>
+                        <label>الشارة (English / Français)<input dir="auto" maxLength={60} value={opt.badgeEn||''} onChange={e=>setQtyOpt(i,{badgeEn:e.target.value})}/></label>
+                      </div>
+                    ))}
+                    <button type="button" onClick={addQtyOpt} disabled={(Array.isArray(editor.qtyOptions)?editor.qtyOptions:[]).length>=10} style={{marginTop:'4px'}}><Plus size={15}/> إضافة خيار كمية</button>
                   </div>
                 </form>
               </div>
