@@ -1,4 +1,5 @@
 import { imageSize } from 'image-size';
+import { PRECOMPRESSED_IMAGES } from './precompressed-images';
 
 type ImageAsset = { bytes: Uint8Array; contentType: string };
 const assets = new Map<string, ImageAsset & { expires: number }>();
@@ -51,7 +52,10 @@ export async function prepareProductImages(data: any, pageId: string, wantedHash
           const asset = { bytes, contentType: `image/${format}` };
           remember(`${pageId}/${hash}`, asset);
           if (hash === wantedHash) requestedImage = asset;
-          url = `/api/product-image?page=${encodeURIComponent(pageId)}&image=${hash}`;
+          // Serve the pre-compressed static derivative when one was generated
+          // for this exact image (much lighter: fixes mobile LCP). The API
+          // route below remains the fallback for any future upload.
+          url = PRECOMPRESSED_IMAGES[hash] ?? `/api/product-image?page=${encodeURIComponent(pageId)}&image=${hash}`;
           try {
             const size = imageSize(bytes);
             if (size.width > 0 && size.height > 0) {
