@@ -1,6 +1,23 @@
 import path from 'node:path';
 import fs from 'node:fs';
-import crypto from 'node:crypto';
+
+/** Fast non-crypto hash (FNV-1a) — avoids importing node:crypto, which the
+ *  managed-Linux worker build does not resolve. Collision risk is irrelevant
+ *  here: the key is only a dedupe/file name for immutable images. */
+function fnv1aHex(bytes: Uint8Array): string {
+  let h1 = 0x811c9dc5;
+  for (let i = 0; i < bytes.length; i++) {
+    h1 ^= bytes[i];
+    h1 = Math.imul(h1, 0x01000193);
+  }
+  // mix in length to reduce collisions further
+  let h2 = 0x811c9dc5 ^ bytes.length;
+  for (let i = bytes.length - 1; i >= 0; i -= 7) {
+    h2 ^= bytes[i];
+    h2 = Math.imul(h2, 0x01000193);
+  }
+  return (h1 >>> 0).toString(16).padStart(8, '0') + (h2 >>> 0).toString(16).padStart(8, '0') + bytes.length.toString(16);
+}
 
 /**
  * Mobile performance fix.
@@ -33,7 +50,7 @@ const hashToUrl = new Map<string, string>();
 
 async function storeImage(ext: string, bytes: Uint8Array): Promise<string | null> {
   const normalizedExt = ext === 'jpeg' ? 'jpg' : ext;
-  const hash = crypto.createHash('sha1').update(bytes).digest('hex');
+  const hash = fnv1aHex(bytes);
   const key = `${hash}.${normalizedExt}`;
 
   const cached = hashToUrl.get(key);
