@@ -6,6 +6,7 @@ export const dynamic = 'force-dynamic';
 export default async function Page() {
   let pageData: any = null;
   let brandData: any = defaultBrand;
+  const brandPromise = brand().catch(() => defaultBrand);
 
   try {
     let targetPageId = '';
@@ -16,29 +17,16 @@ export default async function Page() {
       }
     } catch {}
 
-    const allPagesRes = await db().prepare("SELECT id, slug, data FROM pages WHERE status='published'").all();
-    const pagesList = (allPagesRes?.results || []).map((r: any) => {
-      try {
-        const d = typeof r.data === 'string' ? JSON.parse(r.data) : r.data;
-        return { id: r.id || d?.id, slug: r.slug || d?.slug, data: d };
-      } catch {
-        return null;
-      }
-    }).filter((x: any) => x && x.data);
-
-    if (pagesList.length > 0) {
-      let chosen: any = null;
-      if (targetPageId) {
-        chosen = pagesList.find((p: any) => p.id === targetPageId || p.data?.id === targetPageId);
-      }
-      if (chosen && chosen.data) {
-        pageData = chosen.data;
+    if (targetPageId) {
+      const row = await db().prepare("SELECT data FROM pages WHERE id=? AND status='published' LIMIT 1").bind(targetPageId).first();
+      if (row?.data) {
+        pageData = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
       }
     }
   } catch {}
 
   try {
-    brandData = await brand();
+    brandData = await brandPromise;
   } catch {}
 
   if (!pageData) {

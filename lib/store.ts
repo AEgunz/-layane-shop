@@ -58,6 +58,14 @@ function getSupabaseD1() {
     async execApi(): Promise<any[]> {
       try {
         if (this.sql.includes('SELECT') && this.sql.includes('pages')) {
+          if (this.sql.includes('WHERE id=?')) {
+            const res = await fetch(`${cleanUrl}/rest/v1/pages?id=eq.${encodeURIComponent(this.params[0])}&status=eq.published&select=id,slug,data&limit=1`, {
+              headers: { 'apikey': sbApiKey, 'Authorization': `Bearer ${sbApiKey}` },
+              cache: 'no-store'
+            });
+            if (!res.ok) throw new Error('Unable to read published page');
+            return await res.json();
+          }
           if (this.sql.includes("WHERE slug=?")) {
             const slug = this.params[0];
             const res = await fetch(`${cleanUrl}/rest/v1/pages?slug=eq.${encodeURIComponent(slug)}&status=eq.published&select=id,slug,data`, {

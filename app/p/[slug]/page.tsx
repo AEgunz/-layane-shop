@@ -9,6 +9,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
   let pageData: any = null;
   let brandData: any = defaultBrand;
+  const brandPromise = brand().catch(() => defaultBrand);
 
   try {
     const row = await db().prepare("SELECT data FROM pages WHERE slug=? AND status='published'").bind(slug).first();
@@ -27,7 +28,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   } catch {}
 
   try {
-    brandData = await brand();
+    brandData = await brandPromise;
   } catch {}
 
   if (!pageData) notFound();

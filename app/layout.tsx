@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import StoreFonts from './store-fonts';
 
 export const metadata: Metadata = {
   title: "layane-shop Store Studio",
@@ -27,13 +28,15 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <meta name="theme-color" content="#205b44" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="layane Admin" />
         <link rel="apple-touch-icon" href="/icon.png" />
       </head>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased"><StoreFonts />{children}</body>
     </html>
   );
 }

@@ -39,7 +39,9 @@ for (const serialized of [true, false]) {
         assert.equal(parsed.searchParams.get('select'), 'id,slug,data');
         assert.equal(parsed.searchParams.get('status'), 'eq.published');
         assert.equal(init.cache, 'no-store');
-        return {ok: true, json: async () => rows.filter(row => row.status === 'published')};
+        assert.equal(parsed.searchParams.get('id'), `eq.${selectedId}`);
+        assert.equal(parsed.searchParams.get('limit'), '1');
+        return {ok: true, json: async () => rows.filter(row => row.status === 'published' && row.id === selectedId)};
       },
     });
     const home = load('app/page.tsx', {'@/lib/store': store, './storefront': {default: () => null}});
