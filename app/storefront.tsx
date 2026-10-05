@@ -468,6 +468,8 @@ export function ProductView({page,brand,preview}:any){
               <div className="main-banner-image-wrap">
                 <img
                   src={firstImage}
+                  width={p.imageDimensions?.[firstImage]?.width}
+                  height={p.imageDimensions?.[firstImage]?.height}
                   alt={productName}
                   className="main-banner-image"
                   fetchPriority="high"
@@ -486,6 +488,8 @@ export function ProductView({page,brand,preview}:any){
                 <div key={idx} className="secondary-banner-image-wrap">
                   <img
                     src={imgUrl}
+                    width={p.imageDimensions?.[imgUrl]?.width}
+                    height={p.imageDimensions?.[imgUrl]?.height}
                     alt={`${productName} - image ${idx + 2}`}
                     className="secondary-banner-image"
                     loading="lazy"
@@ -523,7 +527,7 @@ export function ProductView({page,brand,preview}:any){
             <section className="reviews-image-card">
               <h3>{ar ? 'آراء وتقييمات زبنائنا الكرام ⭐' : 'Customer Reviews & Feedback'}</h3>
               <div className="reviews-banner-wrap">
-                <img src={reviewsBannerImage} alt="Customer Reviews" className="reviews-banner-image" loading="lazy" />
+                <img src={reviewsBannerImage} width={p.imageDimensions?.[reviewsBannerImage]?.width} height={p.imageDimensions?.[reviewsBannerImage]?.height} alt="Customer Reviews" className="reviews-banner-image" loading="lazy" />
               </div>
             </section>
           )}

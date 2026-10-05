@@ -1,3 +1,5 @@
+import { imageSize } from 'image-size';
+
 type ImageAsset = { bytes: Uint8Array; contentType: string };
 const assets = new Map<string, ImageAsset & { expires: number }>();
 const MAX_BYTES = 32 * 1024 * 1024;
@@ -30,6 +32,7 @@ export function cachedProductImage(pageId: string, hash: string): ImageAsset | u
 // including on read-only hosts; no dependency on deployment-local uploads.
 export async function prepareProductImages(data: any, pageId: string, wantedHash?: string) {
   const replacements = new Map<string, string>();
+  const dimensions: Record<string, { width: number; height: number }> = {};
   let requestedImage: ImageAsset | undefined;
   async function walk(value: any): Promise<any> {
     if (typeof value === 'string') {
@@ -49,6 +52,15 @@ export async function prepareProductImages(data: any, pageId: string, wantedHash
           remember(`${pageId}/${hash}`, asset);
           if (hash === wantedHash) requestedImage = asset;
           url = `/api/product-image?page=${encodeURIComponent(pageId)}&image=${hash}`;
+          try {
+            const size = imageSize(bytes);
+            if (size.width > 0 && size.height > 0) {
+              const rotated = size.orientation && size.orientation >= 5 && size.orientation <= 8;
+              dimensions[url] = rotated
+                ? { width: size.height, height: size.width }
+                : { width: size.width, height: size.height };
+            }
+          } catch { /* Unsupported or damaged images keep the existing fallback. */ }
           replacements.set(source, url);
         }
         output = output.split(source).join(url);
@@ -64,5 +76,9 @@ export async function prepareProductImages(data: any, pageId: string, wantedHash
     }
     return value;
   }
-  return { data: await walk(data), image: requestedImage };
+  const prepared = await walk(data);
+  if (prepared && typeof prepared === 'object' && !Array.isArray(prepared) && Object.keys(dimensions).length) {
+    prepared.imageDimensions = { ...prepared.imageDimensions, ...dimensions };
+  }
+  return { data: prepared, image: requestedImage };
 }

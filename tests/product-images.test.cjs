@@ -41,3 +41,21 @@ test('cold instance reconstructs image from published data; invalid hashes and m
  const missing=load('app/api/product-image/route.ts',{'@/lib/product-images':load('lib/product-images.ts'),'@/lib/store':{db:()=>({prepare:()=>({bind:()=>({first:async()=>null})})})}});
  assert.equal((await missing.GET(new Request('https://shop.example'+url))).status,404);
 });
+
+test('server HTML reserves the exact dimensions for hero, gallery and review images',async()=>{
+ const images=load('lib/product-images.ts');
+ function png(w,h){const bytes=Buffer.alloc(33);Buffer.from('89504e470d0a1a0a','hex').copy(bytes);bytes.writeUInt32BE(13,8);bytes.write('IHDR',12);bytes.writeUInt32BE(w,16);bytes.writeUInt32BE(h,20);return 'data:image/png;base64,'+bytes.toString('base64');}
+ const saved={name:'Product',language:'ar',images:[png(800,1200),png(600,900)],reviewsImage:png(1000,400)};
+ const prepared=(await images.prepareProductImages(saved,'dimensions')).data;
+ assert.equal(prepared.imageDimensions[prepared.images[0]].width,800);
+ assert.equal(prepared.imageDimensions[prepared.images[0]].height,1200);
+ const exports={};
+ vm.runInNewContext(ts.transpileModule(fs.readFileSync('app/storefront.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText,{exports,require,crypto:require('node:crypto').webcrypto});
+ const html=require('react-dom/server').renderToStaticMarkup(require('react').createElement(exports.ProductView,{page:prepared,brand:{name:'Store'}}));
+ const tags=[...html.matchAll(/<img\b[^>]*>/g)].map(m=>m[0]).filter(s=>s.includes('/api/product-image'));
+ assert.equal(tags.length,3);
+ for(const [index,[w,h]] of [[800,1200],[600,900],[1000,400]].entries()){
+  assert.ok(tags[index].includes(`width="${w}"`));assert.ok(tags[index].includes(`height="${h}"`));
+ }
+ assert.ok(!('imageDimensions' in saved));
+});
