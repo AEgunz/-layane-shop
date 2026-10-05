@@ -60,7 +60,7 @@ function getSupabaseD1() {
         if (this.sql.includes('SELECT') && this.sql.includes('pages')) {
           if (this.sql.includes("WHERE slug=?")) {
             const slug = this.params[0];
-            const res = await fetch(`${cleanUrl}/rest/v1/pages?slug=eq.${encodeURIComponent(slug)}&status=eq.published&select=data`, {
+            const res = await fetch(`${cleanUrl}/rest/v1/pages?slug=eq.${encodeURIComponent(slug)}&status=eq.published&select=id,slug,data`, {
               headers: { 'apikey': sbApiKey, 'Authorization': `Bearer ${sbApiKey}` },
               cache: 'no-store'
             });

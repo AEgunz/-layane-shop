@@ -1,5 +1,6 @@
 import Storefront from './storefront';
 import { db, brand, defaultBrand } from '@/lib/store';
+import { externalizeDataImages } from '@/lib/externalize-images';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,7 +33,20 @@ export default async function Page() {
         chosen = pagesList.find((p: any) => p.id === targetPageId || p.data?.id === targetPageId);
       }
       if (chosen && chosen.data) {
-        pageData = chosen.data;
+        // Perf: move any Base64-inlined images out of the page JSON into
+        // stored files (runs once, then persists the migrated data).
+        try {
+          const { data: migrated, changed } = await externalizeDataImages(chosen.data);
+          if (changed) {
+            await db()
+              .prepare('INSERT INTO pages(id,slug,status,data) VALUES(?,?,?,?) ON CONFLICT(id) DO UPDATE SET slug=excluded.slug,status=excluded.status,data=excluded.data')
+              .bind(chosen.id, chosen.slug || migrated.slug || '', 'published', JSON.stringify(migrated))
+              .run();
+          }
+          pageData = migrated;
+        } catch {
+          pageData = chosen.data;
+        }
       }
     }
   } catch {}
