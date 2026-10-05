@@ -1,5 +1,6 @@
 import Storefront from './storefront';
 import { db, brand, defaultBrand } from '@/lib/store';
+import { prepareProductImages } from '@/lib/product-images';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,6 +22,7 @@ export default async function Page() {
       const row = await db().prepare("SELECT data FROM pages WHERE id=? AND status='published' LIMIT 1").bind(targetPageId).first();
       if (row?.data) {
         pageData = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
+        pageData = (await prepareProductImages(pageData, targetPageId)).data;
       }
     }
   } catch {}

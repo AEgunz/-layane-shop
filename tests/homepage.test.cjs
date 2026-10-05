@@ -44,7 +44,8 @@ for (const serialized of [true, false]) {
         return {ok: true, json: async () => rows.filter(row => row.status === 'published' && row.id === selectedId)};
       },
     });
-    const home = load('app/page.tsx', {'@/lib/store': store, './storefront': {default: () => null}});
+    const images = load('lib/product-images.ts', {}, {Buffer, TextEncoder, crypto: require('node:crypto').webcrypto});
+    const home = load('app/page.tsx', {'@/lib/store': store, '@/lib/product-images': images, './storefront': {default: () => null}});
     const rendered = await home.default();
     assert.equal(JSON.stringify(rendered.props.page), JSON.stringify(saved));
     assert.ok(requests.some(request => request.url.pathname.endsWith('/pages')));
