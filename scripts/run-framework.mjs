@@ -133,6 +133,10 @@ async function startServer() {
       response.headers.forEach((value, key) => {
         res.setHeader(key, value);
       });
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.setHeader('Surrogate-Control', 'no-store');
 
       if (response.body) {
         const reader = response.body.getReader();
@@ -160,22 +164,14 @@ async function startServer() {
 startServer();
 `;
 
-    fs.writeFileSync(path.join(nextStandaloneDir, "server.js"), serverJsContent);
     fs.writeFileSync(path.join(standaloneDir, "server.js"), serverJsContent);
+    fs.writeFileSync(path.join(nextStandaloneDir, "server.js"), serverJsContent);
     fs.writeFileSync(path.join(nextDir, "server.js"), serverJsContent);
-    fs.writeFileSync(path.join(nextDir, "BUILD_ID"), "build");
-    fs.writeFileSync(
-      path.join(nextDir, "required-server-files.json"),
-      JSON.stringify({ version: "1.0.0", config: {}, appDir: true, relativeAppDir: "", files: [], ignore: [] })
-    );
     console.log("Post-build standalone server successfully generated.");
-  } catch (e) {
-    console.error("Post-build copy error:", e);
+  } catch (err) {
+    console.error("Failed to generate standalone server:", err);
   }
-
-  process.exit(0);
+} else {
+  const result = spawnSync("node", [fileURLToPath(cli), "dev", ...args], { stdio: "inherit" });
+  if (result.error) throw result.error;
 }
-
-process.argv = [process.execPath, fileURLToPath(cli), command,
-  ...(!managedLinux && command === "dev" ? ["--port", "5173"] : []), ...args];
-await import(cli.href);

@@ -4,6 +4,7 @@ import { db, brand, defaultBrand } from '@/lib/store';
 import { prepareProductImages } from '@/lib/product-images';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
