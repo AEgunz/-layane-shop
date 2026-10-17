@@ -2,7 +2,7 @@
 import {useState,useEffect,useCallback} from 'react';
 import {LayoutDashboard,PanelsTopLeft,ShoppingBag,ChartNoAxesCombined,Settings,Plus,Leaf,ArrowUpRight,Globe,MousePointer2,Wallet,Search,ChevronDown,Download,ExternalLink,Copy,Pencil,X,Monitor,Smartphone,Check,Archive,RefreshCw,ImagePlus,ArrowLeft,ArrowRight,Eye,ShieldCheck,Upload,LogOut,Lock,MessageCircle,Trash2,Bell} from 'lucide-react';
 import {Logo,ProductView} from './storefront';
-import {enablePush,showOrderNotification} from '@/lib/push-client';
+import {enablePush} from '@/lib/push-client';
 import JSZip from 'jszip';
 
 const money=(n:number)=>new Intl.NumberFormat('en-MA',{maximumFractionDigits:2}).format(n)+' DH';
@@ -173,7 +173,7 @@ function ZipUploader({onHtmlLoaded,onImagesLoaded}:any){
             const body=new FormData();
             body.append('file',fileToUpload);
             const r=await fetch('/api/upload',{method:'POST',body});
-            const d:any=await r.json();
+            const d=await r.json();
             if(r.ok&&d?.url){
               uploadedUrl = d.url;
             }
@@ -284,7 +284,7 @@ function MultiImageUploader({images,onChange}:any){
                 #{idx+1}
               </span>
               <img src={url} alt={`Section ${idx+1}`} style={{width:'100%',height:'90px',objectFit:'cover',display:'block'}}/>
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',background:'#f4f7f3',padding:'5px 6px',borderTop:'1px solid #e1e9df'}}>
+              <div style={{display:'flex',justify:'space-between',alignItems:'center',background:'#f4f7f3',padding:'5px 6px',borderTop:'1px solid #e1e9df'}}>
                 <button type="button" title="تحريك لليسار" disabled={idx===0} onClick={()=>move(idx,idx-1)} style={{padding:'3px 6px',border:0,background:'transparent',cursor:'pointer',opacity:idx===0?0.3:1}}>
                   <ArrowLeft size={14}/>
                 </button>
@@ -529,24 +529,31 @@ export default function Studio(){
   async function requestNotificationPermission() {
     setNotifBusy(true);
     try {
-      if (!('Notification' in window)) throw new Error('هذا المتصفح لا يدعم الإشعارات. استعمل Chrome أو Edge.');
+      if (!('Notification' in window)) {
+        setToast('هذا المتصفح لا يدعم الإشعارات.');
+        return;
+      }
       const perm = await Notification.requestPermission();
-      if (perm !== 'granted') throw new Error('الإشعارات محظورة. فعّلها من إعدادات الموقع والتطبيق ثم حاول مجدداً.');
+      if (perm !== 'granted') {
+        setToast('الإشعارات محظورة بمتصفحك.');
+        setNotifGranted(false);
+        return;
+      }
       await enablePush(true);
       setNotifGranted(true);
-      setToast('تم إرسال إشعار تجريبي إلى هذا الجهاز.');
-    } catch (e) {
+      setToast('تم تفعيل وإرسال إشعار تجريبي بنجاح! 🔔');
+    } catch {
       setNotifGranted(false);
-      setError(e instanceof Error ? e.message : 'تعذر تفعيل الإشعارات');
+      setToast('تعذر تفعيل الإشعارات حالياً.');
     } finally { setNotifBusy(false); }
   }
 
   const canReceiveOrders = Boolean(data?.permissions?.includes('Orders'));
   useEffect(() => {
-    if (!canReceiveOrders || !('Notification' in window) || Notification.permission !== 'granted') return;
+    if (!canReceiveOrders || typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'granted') return;
     let cancelled = false;
-    enablePush().then(() => { if (!cancelled) setNotifGranted(true); }).catch((e) => {
-      if (!cancelled) { setNotifGranted(false); setError(e.message); }
+    enablePush().then(() => { if (!cancelled) setNotifGranted(true); }).catch(() => {
+      if (!cancelled) setNotifGranted(false);
     });
     return () => { cancelled = true; };
   }, [canReceiveOrders]);
@@ -554,24 +561,32 @@ export default function Studio(){
   const reload = useCallback(async (isBackground = false) => {
     try {
       const d = await api();
-      // Notification delivery must never prevent the admin from loading.
-      setData(d);
-      setError('');
-      setLoginErr('');
       if (d && Array.isArray(d.orders) && d.orders.length > 0) {
         const latestOrder = d.orders[0];
         const lastSeenId = safeLocalStorageGet('layane_last_seen_order');
 
         if (latestOrder && latestOrder.id !== lastSeenId) {
-          safeLocalStorageSet('layane_last_seen_order', latestOrder.id);
           if (lastSeenId) {
             playNotificationChime();
-            void showOrderNotification(latestOrder.id).catch(() => {
-              // A blocked service worker must not block login or order refresh.
-            });
+            if (typeof (globalThis as any).showOrderNotification === 'function') {
+              try { await (globalThis as any).showOrderNotification(latestOrder.id); } catch {}
+            }
+            if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+              try {
+                new Notification(`🚨 طلب جديد #${latestOrder.id.slice(0, 8).toUpperCase()}!`, {
+                  body: `الزبون: ${latestOrder.customer} (${latestOrder.city}) • المجموع: ${latestOrder.total} DH`,
+                  icon: '/icon.png',
+                  badge: '/icon.png'
+                });
+              } catch {}
+            }
           }
+          safeLocalStorageSet('layane_last_seen_order', latestOrder.id);
         }
       }
+      setData(d);
+      setError('');
+      setLoginErr('');
       return d;
     } catch (e: any) {
       if (!isBackground) {
@@ -656,6 +671,37 @@ export default function Studio(){
     } catch {}
   }
 
+  function setQtyOpt(i:number, patch:any){
+    if(!editor)return;
+    const current = Array.isArray(editor.qtyOptions) ? [...editor.qtyOptions] : [];
+    if(!current[i])return;
+    current[i] = {...current[i], ...patch};
+    setEditor({...editor, qtyOptions: current});
+  }
+
+  function addQtyOpt(){
+    if(!editor)return;
+    const current = Array.isArray(editor.qtyOptions) ? [...editor.qtyOptions] : [];
+    const nextQty = current.length + 1;
+    current.push({
+      qty: nextQty,
+      labelAr: `${nextQty} قطع`,
+      labelEn: `${nextQty} Pieces`,
+      badgeAr: '',
+      badgeEn: '',
+      price: 0,
+      enabled: true
+    });
+    setEditor({...editor, qtyOptions: current});
+  }
+
+  function removeQtyOpt(i:number){
+    if(!editor)return;
+    const current = Array.isArray(editor.qtyOptions) ? [...editor.qtyOptions] : [];
+    current.splice(i, 1);
+    setEditor({...editor, qtyOptions: current});
+  }
+
   function navigate(t:string){
     if (data?.permissions && !data.permissions.includes(t)) {
       alert('ليس لديك صلاحية للوصول إلى هذا القسم.');
@@ -673,10 +719,7 @@ export default function Studio(){
   async function save(body:any,message:string){setBusy(true);setError('');try{await api(body);const d=await reload(false);setToast(message);return d}catch(e:any){setError(e.message);return null}finally{setBusy(false)}}
   async function savePage(status?:string){const p={...editor,status:status||editor.status};const result=await save({action:'page',page:p},p.status==='published'?'Page published. Your storefront is ready.':'Page saved.');if(result)setEditor(p)}
   async function duplicate(p:any){const id=crypto.randomUUID();const cp={...p,id,slug:p.slug+'-'+id.slice(0,5),name:p.name+' (copy)',status:'draft',createdAt:new Date().toISOString()};const result=await save({action:'page',page:cp},'Page duplicated as a draft.');if(result){setEditor(cp)}}
-  function newPage(){const id=crypto.randomUUID();setEditor({id,name:'Untitled product',slug:'product-'+id.slice(0,8),price:199,comparePrice:0,shipping:0,status:'draft',template:'editorial',language:'ar',headline:'',description:'',image:'',images:[],reviewsImage:'',customHtml:'',benefits:'',cta:'اطلب الآن',sections:[],faq:[],qtyOptions:[{qty:1,labelAr:'قطعة واحدة',labelEn:'1 Piece',badgeAr:'',badgeEn:'',price:0,enabled:true},{qty:2,labelAr:'قطعتين (تخفيض خاص)',labelEn:'2 Pieces',badgeAr:'الأكثر طلباً 🔥',badgeEn:'Most Popular',price:0,enabled:true},{qty:3,labelAr:'3 قطع (عرض العائلة)',labelEn:'3 Pieces',badgeAr:'أفضل قيمة 🎁',badgeEn:'Best Value',price:0,enabled:true}],createdAt:new Date().toISOString()});setTab('Landing pages')}
-  function setQtyOpt(i:number,patch:any){const opts=Array.isArray(editor.qtyOptions)?[...editor.qtyOptions]:[];if(!opts[i])return;opts[i]={...opts[i],...patch};setEditor({...editor,qtyOptions:opts})}
-  function removeQtyOpt(i:number){const opts=(Array.isArray(editor.qtyOptions)?editor.qtyOptions:[]).filter((_:any,idx:number)=>idx!==i);setEditor({...editor,qtyOptions:opts})}
-  function addQtyOpt(){const opts=Array.isArray(editor.qtyOptions)?[...editor.qtyOptions]:[];const nextQty=opts.length?Math.max(...opts.map((o:any)=>o.qty||1))+1:1;opts.push({qty:nextQty,labelAr:'',labelEn:'',badgeAr:'',badgeEn:'',price:0,enabled:true});setEditor({...editor,qtyOptions:opts})}
+  function newPage(){const id=crypto.randomUUID();setEditor({id,name:'Untitled product',slug:'product-'+id.slice(0,8),price:199,comparePrice:0,shipping:0,status:'draft',template:'editorial',language:'ar',headline:'',description:'',image:'',images:[],reviewsImage:'',customHtml:'',benefits:'',cta:'اطلب الآن',sections:[],faq:[],createdAt:new Date().toISOString()});setTab('Landing pages')}
   function exportOrders(rows:any[]){const fields=['id','customer','phone','city','address','product','quantity','unit_price','shipping','total','status','created_at','notes'];const cell=(x:any)=>'"'+String(x??'').replace(/^[=+@-]/,"'$&").replaceAll('"','""')+'"';const csv='\uFEFF'+[fields.join(','),...rows.map(o=>fields.map(k=>cell(o[k])).join(','))].join('\r\n');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));const a=document.createElement('a');a.href=url;a.download='layane-shop-orders.csv';a.click();URL.revokeObjectURL(url)}
 
   if (!data) {
@@ -892,6 +935,50 @@ export default function Studio(){
                     <div className="formgrid"><label>السعر (Price DH)<input type="number" min="1" step="0.01" value={editor.price} onChange={e=>setEditor({...editor,price:+e.target.value})}/></label><label>السعر قبل التخفيض (DH)<input type="number" min="0" step="0.01" value={editor.comparePrice} onChange={e=>setEditor({...editor,comparePrice:+e.target.value})}/></label></div>
                     <div className="formgrid"><label>مصاريف التوصيل (DH)<input type="number" min="0" step="0.01" value={editor.shipping} onChange={e=>setEditor({...editor,shipping:+e.target.value})}/><small>0 = توصيل مجاني</small></label><label>نص زر الطلب<input dir="auto" value={editor.cta||'اطلب الآن'} onChange={e=>setEditor({...editor,cta:e.target.value})}/></label></div>
                     <label>لغة الصفحة<select value={editor.language||'ar'} onChange={e=>setEditor({...editor,language:e.target.value})}><option value="ar">العربية (right to left)</option><option value="en">English</option><option value="fr">Français</option></select></label>
+                    <label>
+                      لون وهويّة الصفحة (Theme Primary Color)
+                      <div className="colorinput" style={{ marginTop: '6px' }}>
+                        <input
+                          aria-label="Choose page theme color"
+                          type="color"
+                          value={editor.themeColor || '#205b44'}
+                          onChange={e => setEditor({ ...editor, themeColor: e.target.value })}
+                        />
+                        <input
+                          pattern="#[a-fA-F0-9]{6}"
+                          value={editor.themeColor || '#205b44'}
+                          onChange={e => setEditor({ ...editor, themeColor: e.target.value })}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
+                        {[
+                          { name: '🟢 زمردي', hex: '#205b44' },
+                          { name: '🔴 أحمر', hex: '#dc2626' },
+                          { name: '🔵 أزرق', hex: '#2563eb' },
+                          { name: '🟡 ذهبي', hex: '#d97706' },
+                          { name: '🟣 بنفسجي', hex: '#7c3aed' },
+                          { name: '⬛ فحمي', hex: '#111827' }
+                        ].map(c => (
+                          <button
+                            type="button"
+                            key={c.hex}
+                            onClick={() => setEditor({ ...editor, themeColor: c.hex })}
+                            style={{
+                              background: c.hex,
+                              color: '#fff',
+                              border: (editor.themeColor || '#205b44') === c.hex ? '2px solid #000' : '1px solid transparent',
+                              padding: '4px 10px',
+                              borderRadius: '16px',
+                              fontSize: '11px',
+                              fontWeight: '700',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {c.name}
+                          </button>
+                        ))}
+                      </div>
+                    </label>
                   </div>
 
                   <div className="fieldsection">
@@ -1155,7 +1242,7 @@ export default function Studio(){
                   {['new','confirmed','shipped','delivered','cancelled'].map(s=><option key={s}>{s}</option>)}
                 </select>
               </label>
-              <div style={{display:'flex',gap:'12px',marginTop:'18px',justifyContent:'space-between',alignItems:'center'}}>
+              <div style={{display:'flex',gap:'12px',marginTop:'18px',justify:'space-between',alignItems:'center'}}>
                 <button className="primary" disabled={busy}>{busy?'Saving…':'Update status'}</button>
                 <button
                   type="button"

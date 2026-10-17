@@ -4,32 +4,6 @@ import {ShoppingBag,Star,ShieldCheck,Truck,RotateCcw,ChevronDown,Check,Plus,Minu
 
 const money=(n:number)=>new Intl.NumberFormat('en-MA',{maximumFractionDigits:2}).format(n)+' DH';
 
-const defaultQtyOptions=[
-  {qty:1,labelAr:'قطعة واحدة',labelEn:'1 Piece',badgeAr:'',badgeEn:'',price:0,enabled:true},
-  {qty:2,labelAr:'قطعتين (تخفيض خاص)',labelEn:'2 Pieces',badgeAr:'الأكثر طلباً 🔥',badgeEn:'Most Popular',price:0,enabled:true},
-  {qty:3,labelAr:'3 قطع (عرض العائلة)',labelEn:'3 Pieces',badgeAr:'أفضل قيمة 🎁',badgeEn:'Best Value',price:0,enabled:true}
-];
-
-function resolveQtyOptions(p:any,ar:boolean){
-  const raw=Array.isArray(p?.qtyOptions)?p.qtyOptions:null;
-  let opts=(raw&&raw.length?raw:defaultQtyOptions).filter((o:any)=>o&&o.enabled!==false);
-  if(!opts.length)opts=defaultQtyOptions.slice(0,1);
-  return opts
-    .slice()
-    .sort((a:any,b:any)=>(a.qty||0)-(b.qty||0))
-    .map((o:any)=>({
-      qty:o.qty||1,
-      price:typeof o.price==='number'?o.price:0,
-      label:(ar?(o.labelAr||o.labelEn):(o.labelEn||o.labelAr))||String(o.qty||1),
-      badge:ar?(o.badgeAr||o.badgeEn||''):(o.badgeEn||o.badgeAr||'')
-    }));
-}
-
-function optionTotal(opt:any,unitPrice:number){
-  if(!opt)return unitPrice;
-  return opt.price>0?opt.price:unitPrice*(opt.qty||1);
-}
-
 export function Logo({brand}:any){
   return (
     <a href="/" className="brandlogo">
@@ -78,6 +52,21 @@ function TrustGuaranteeCards() {
   );
 }
 
+function defaultQtyOptions(ar: boolean) {
+  return [
+    { qty: 1, labelAr: 'قطعة واحدة', labelEn: '1 Piece', badgeAr: '', badgeEn: '', price: 0, enabled: true },
+    { qty: 2, labelAr: 'قطعتين (تخفيض خاص)', labelEn: '2 Pieces (Special Offer)', badgeAr: 'الأكثر طلباً 🔥', badgeEn: 'Best Value 🔥', price: 0, enabled: true },
+    { qty: 3, labelAr: '3 قطع (عرض العائلة)', labelEn: '3 Pieces (Family Pack)', badgeAr: 'أفضل قيمة 🎁', badgeEn: 'Family Savings 🎁', price: 0, enabled: true }
+  ];
+}
+
+function optionTotal(opt: any, unitPrice: number) {
+  if (opt.price && typeof opt.price === 'number' && opt.price > 0) {
+    return opt.price;
+  }
+  return unitPrice * (opt.qty || 1);
+}
+
 function OrderFormSection({
   done,
   formState,
@@ -111,10 +100,22 @@ function OrderFormSection({
     );
   }
 
-  const unitPrice = p.price ?? 0;
-  const qtyOptions = resolveQtyOptions(p, ar);
-  const selectedOption = qtyOptions.find((o: any) => o.qty === quantity) || qtyOptions[0];
-  const total = optionTotal(selectedOption, unitPrice) + (p.shipping || 0);
+  const unitPrice = p.price || 249;
+  const rawQtyOptions = Array.isArray(p.qtyOptions) && p.qtyOptions.length > 0
+    ? p.qtyOptions
+    : defaultQtyOptions(ar);
+
+  const qtyOptions = rawQtyOptions
+    .filter((opt: any) => opt && opt.enabled !== false)
+    .map((opt: any) => {
+      const label = ar ? (opt.labelAr || `${opt.qty} ${opt.qty === 1 ? 'قطعة' : 'قطع'}`) : (opt.labelEn || `${opt.qty} item${opt.qty > 1 ? 's' : ''}`);
+      const badge = ar ? (opt.badgeAr || '') : (opt.badgeEn || '');
+      return { ...opt, label, badge };
+    });
+
+  const activeOption = qtyOptions.find((o: any) => o.qty === quantity) || qtyOptions[0] || { qty: quantity, price: 0 };
+  const effectiveUnitPrice = optionTotal(activeOption, unitPrice);
+  const total = effectiveUnitPrice + (p.shipping || 0);
   const productName = p.name || '';
 
   return (
@@ -265,6 +266,7 @@ export function ProductView({page,brand,preview}:any){
   const ar=p.language==='ar'||!p.language;
   const fr=p.language==='fr';
   const productName = p.name || '';
+  const themeColor = p.themeColor || brand?.color || '#205b44';
 
   const hasUploadedImages = Array.isArray(p.images) && p.images.length > 0;
   const firstImage = hasUploadedImages ? p.images[0] : (p.image || '');
@@ -299,23 +301,13 @@ export function ProductView({page,brand,preview}:any){
         if (productName) {
           (window as any).fbq('track', 'ViewContent', {
             content_name: productName,
-            value: p.price ?? 0,
+            value: p.price || 249,
             currency: 'MAD'
           });
         }
       } catch {}
     }
   }, [brand?.pixelId, p, productName]);
-
-  const availableQtyOptions = resolveQtyOptions(p, ar);
-  const optionQtyKey = availableQtyOptions.map((o: any) => o.qty).join(',');
-
-  useEffect(() => {
-    if (!availableQtyOptions.some((o: any) => o.qty === quantity)) {
-      setQuantity(availableQtyOptions[0]?.qty || 1);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [optionQtyKey]);
 
   function scrollToCheckout() {
     const el = document.getElementById('checkout-form');
@@ -372,11 +364,11 @@ export function ProductView({page,brand,preview}:any){
     const phoneVal = String(f.get('phone') || formState.phone);
     const cityVal = String(f.get('city') || formState.city);
     const addressVal = String(f.get('address') || formState.address);
-    const orderOptions = resolveQtyOptions(p, ar);
-    const orderOption = orderOptions.find((o: any) => o.qty === quantity) || orderOptions[0];
-    const bundleTotal = optionTotal(orderOption, p.price ?? 0);
-    const effectiveUnitPrice = orderOption && orderOption.qty ? +(bundleTotal / orderOption.qty).toFixed(2) : (p.price ?? 0);
-    const totalAmount = bundleTotal + (p.shipping || 0);
+
+    const rawOptions = Array.isArray(p.qtyOptions) && p.qtyOptions.length > 0 ? p.qtyOptions : defaultQtyOptions(ar);
+    const activeOpt = rawOptions.find((o: any) => o.qty === quantity) || rawOptions[0] || { price: 0, qty: quantity };
+    const effectiveUnitPrice = optionTotal(activeOpt, p.price || 249);
+    const totalAmount = effectiveUnitPrice + (p.shipping || 0);
 
     try{
       const res=await fetch('/api/public',{
@@ -439,7 +431,7 @@ export function ProductView({page,brand,preview}:any){
   };
 
   return (
-    <div className={`storefront-wrapper ${ar ? 'rtl-dir' : 'ltr-dir'}`} dir={ar ? 'rtl' : 'ltr'}>
+    <div className={`storefront-wrapper ${ar ? 'rtl-dir' : 'ltr-dir'}`} dir={ar ? 'rtl' : 'ltr'} style={{ '--page-theme': themeColor, '--brand': themeColor } as any}>
       {p.customHtml ? (
         <div className="custom-html-landing" dangerouslySetInnerHTML={{ __html: p.customHtml }} />
       ) : (
@@ -455,8 +447,8 @@ export function ProductView({page,brand,preview}:any){
             {p.headline && <p className="landing-headline">{p.headline}</p>}
 
             <div className="price-tag-wrapper">
-              <span className="current-price">{money(p.price ?? 0)}</span>
-              {p.comparePrice > (p.price ?? 0) && (
+              <span className="current-price">{money(p.price || 249)}</span>
+              {p.comparePrice > (p.price || 249) && (
                 <span className="old-price">{money(p.comparePrice)}</span>
               )}
               <span className="free-shipping-badge">
@@ -468,8 +460,6 @@ export function ProductView({page,brand,preview}:any){
               <div className="main-banner-image-wrap">
                 <img
                   src={firstImage}
-                  width={p.imageDimensions?.[firstImage]?.width}
-                  height={p.imageDimensions?.[firstImage]?.height}
                   alt={productName}
                   className="main-banner-image"
                   fetchPriority="high"
@@ -488,8 +478,6 @@ export function ProductView({page,brand,preview}:any){
                 <div key={idx} className="secondary-banner-image-wrap">
                   <img
                     src={imgUrl}
-                    width={p.imageDimensions?.[imgUrl]?.width}
-                    height={p.imageDimensions?.[imgUrl]?.height}
                     alt={`${productName} - image ${idx + 2}`}
                     className="secondary-banner-image"
                     loading="lazy"
@@ -527,7 +515,7 @@ export function ProductView({page,brand,preview}:any){
             <section className="reviews-image-card">
               <h3>{ar ? 'آراء وتقييمات زبنائنا الكرام ⭐' : 'Customer Reviews & Feedback'}</h3>
               <div className="reviews-banner-wrap">
-                <img src={reviewsBannerImage} width={p.imageDimensions?.[reviewsBannerImage]?.width} height={p.imageDimensions?.[reviewsBannerImage]?.height} alt="Customer Reviews" className="reviews-banner-image" loading="lazy" />
+                <img src={reviewsBannerImage} alt="Customer Reviews" className="reviews-banner-image" loading="lazy" />
               </div>
             </section>
           )}
@@ -540,14 +528,7 @@ export function ProductView({page,brand,preview}:any){
         <div className="sticky-cta-inner">
           <div className="sticky-price-info">
             <span className="sticky-title">{productName}</span>
-            <span className="sticky-price">
-              {money(optionTotal(availableQtyOptions.find((o: any) => o.qty === quantity) || availableQtyOptions[0], p.price ?? 0))}
-              {(p.comparePrice ?? 0) > (p.price ?? 0) && (
-                <small style={{ textDecoration: 'line-through', color: '#9ca3af', fontSize: '12px', marginInlineStart: '6px', fontWeight: '600' }}>
-                  {money(p.comparePrice)}
-                </small>
-              )}
-            </span>
+            <span className="sticky-price">{money(p.price || 249)}</span>
           </div>
           <button className="sticky-cta-button" onClick={scrollToCheckout}>
             <ShoppingBag size={18} />
@@ -578,18 +559,20 @@ export function ProductView({page,brand,preview}:any){
       </footer>
 
       {activePolicy && (
-        <dialog ref={policyDialog} className="policy-modal-dialog" aria-labelledby={policyTitleId}
-          onCancel={() => setActivePolicy(null)}
-          onClose={e => { if (!e.currentTarget.open) setActivePolicy(null); }}
-          onClick={e => { if (e.target === e.currentTarget) setActivePolicy(null); }}>
-          <div className="policy-modal-card">
-            <div className="policy-modal-header">
-              <h3 id={policyTitleId}>{activePolicy.title}</h3>
-              <button type="button" autoFocus onClick={() => setActivePolicy(null)} aria-label="إغلاق"><X size={20} /></button>
-            </div>
-            <div className="policy-modal-body">
-              {activePolicy.content}
-            </div>
+        <dialog
+          ref={policyDialog}
+          className="policy-modal-card"
+          aria-labelledby={policyTitleId}
+          onClick={e => {
+            if (e.target === policyDialog.current) setActivePolicy(null);
+          }}
+        >
+          <div className="policy-modal-header">
+            <h3 id={policyTitleId}>{activePolicy.title}</h3>
+            <button type="button" onClick={() => setActivePolicy(null)} aria-label="إغلاق"><X size={20} /></button>
+          </div>
+          <div className="policy-modal-body">
+            {activePolicy.content}
           </div>
         </dialog>
       )}
