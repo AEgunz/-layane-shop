@@ -413,7 +413,7 @@ nav button.selected {
 }
 
 /* =========================================================
-   STOREFRONT STRICT MOBILE-FIRST & CENTERED CSS
+   STOREFRONT RESPONSIVE & MOBILE-FIRST LAYOUT
    ========================================================= */
 
 .storefront-wrapper {
@@ -853,10 +853,38 @@ nav button.selected {
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
-  gap: 12px !important;
+  gap: 16px !important;
   width: 100% !important;
   box-sizing: border-box !important;
   direction: rtl !important;
+}
+
+.sticky-price-info {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 12px !important;
+  flex-wrap: nowrap !important;
+  overflow: hidden !important;
+}
+
+.sticky-title {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: #1e293b !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 180px !important;
+  margin-inline-end: 8px !important;
+}
+
+.sticky-price {
+  font-size: 18px !important;
+  font-weight: 900 !important;
+  color: var(--page-theme, var(--brand, #205b44)) !important;
+  white-space: nowrap !important;
+  margin-inline-start: 6px !important;
 }
 
 .sticky-cta-button {
@@ -873,12 +901,6 @@ nav button.selected {
   cursor: pointer !important;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2) !important;
   white-space: nowrap !important;
-}
-
-.sticky-price {
-  font-size: 18px !important;
-  font-weight: 900 !important;
-  color: var(--page-theme, var(--brand, #205b44)) !important;
 }
 
 .storefront-footer {
