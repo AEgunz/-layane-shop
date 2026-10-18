@@ -1035,8 +1035,67 @@ export default function Studio(){
                 <div className="overviewgrid">
                   <section className="panel">
                     <div className="panelhead"><div><h2>Traffic overview</h2><p>Your visits over the last 7 days</p></div><span className="legend"><i/>Page visits</span></div>
-                    <div className="chart">
-                      <div className="chartbars">{Array.from({length:7},(_,i)=>{const day=new Date(Date.now()-(6-i)*86400000).toISOString().slice(0,10);const v=data.visits.filter((x:any)=>x.day===day).reduce((n:number,x:any)=>n+x.count,0);const max=Math.max(1,...Array.from({length:7},(_,j)=>data.visits.filter((x:any)=>x.day===new Date(Date.now()-j*86400000).toISOString().slice(0,10)).reduce((n:number,x:any)=>n+x.count,0)));return <div key={day}><span>{v}</span><div className="bar" style={{height:Math.max(2,v/max*120)+'px'}}/><small>{new Date(day+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</small></div>})}</div>
+                    <div className="chart" style={{ padding: '20px 16px', width: '100%', boxSizing: 'border-box' }}>
+                      <div
+                        className="chartbars"
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'row',
+                          alignItems: 'flex-end',
+                          justifyContent: 'space-between',
+                          height: '180px',
+                          width: '100%',
+                          gap: '6px',
+                          padding: '10px 0 0 0',
+                          boxSizing: 'border-box',
+                          background: 'repeating-linear-gradient(to top, transparent 0px, transparent 39px, #f1f5f2 40px)'
+                        }}
+                      >
+                        {Array.from({ length: 7 }, (_, i) => {
+                          const day = new Date(Date.now() - (6 - i) * 86400000).toISOString().slice(0, 10);
+                          const v = data.visits.filter((x: any) => x.day === day).reduce((n: number, x: any) => n + x.count, 0);
+                          const max = Math.max(
+                            1,
+                            ...Array.from({ length: 7 }, (_, j) =>
+                              data.visits
+                                .filter((x: any) => x.day === new Date(Date.now() - j * 86400000).toISOString().slice(0, 10))
+                                .reduce((n: number, x: any) => n + x.count, 0)
+                            )
+                          );
+                          const barHeight = Math.max(4, Math.round((v / max) * 110));
+                          return (
+                            <div
+                              key={day}
+                              style={{
+                                flex: 1,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'flex-end',
+                                height: '100%',
+                                minWidth: 0
+                              }}
+                            >
+                              <span style={{ fontSize: '11px', fontWeight: '700', color: '#526258', marginBottom: '4px' }}>{v}</span>
+                              <div
+                                className="bar"
+                                style={{
+                                  height: `${barHeight}px`,
+                                  width: '100%',
+                                  maxWidth: '28px',
+                                  minWidth: '6px',
+                                  background: 'var(--brand, #205b44)',
+                                  borderRadius: '4px 4px 0 0',
+                                  transition: 'height 0.3s ease'
+                                }}
+                              />
+                              <small style={{ fontSize: '10px', marginTop: '6px', whiteSpace: 'nowrap', color: '#64748b', fontWeight: '600' }}>
+                                {new Date(day + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                              </small>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   </section>
                   <section className="panel storehealth">
