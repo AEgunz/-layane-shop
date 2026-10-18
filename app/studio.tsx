@@ -756,15 +756,68 @@ export default function Studio(){
 
   if (!data) {
     return (
-      <div className="login-backdrop">
-        <form className="login-card" onSubmit={handleLogin} autoComplete="off">
-          <div className="login-head">
-            <Leaf size={38} style={{ color: '#205b44', margin: '0 auto 10px auto' }} />
-            <h2>layane-shop Store Studio</h2>
-            <p>تسجيل الدخول إلى لوحة تحكم المتجر</p>
+      <div
+        className="login-backdrop"
+        style={{
+          minHeight: '100vh',
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: '#f8faf6',
+          padding: '20px',
+          boxSizing: 'border-box'
+        }}
+      >
+        <form
+          className="login-card"
+          onSubmit={handleLogin}
+          autoComplete="off"
+          style={{
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderRadius: '16px',
+            padding: '36px 28px',
+            width: '100%',
+            maxWidth: '420px',
+            boxShadow: '0 10px 35px rgba(0,0,0,0.06)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '20px',
+            direction: 'rtl',
+            textAlign: 'right',
+            boxSizing: 'border-box'
+          }}
+        >
+          <div className="login-head" style={{ textAlign: 'center' }}>
+            <Leaf size={42} style={{ color: '#205b44', margin: '0 auto 12px auto' }} />
+            <h2 style={{ fontSize: '22px', fontWeight: '900', color: '#0f172a', margin: '0 0 6px 0' }}>
+              layane-shop Store Studio
+            </h2>
+            <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
+              تسجيل الدخول إلى لوحة تحكم المتجر
+            </p>
           </div>
-          {loginErr && <p className="error" style={{ color: '#d32f2f', background: '#fdeded', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', textAlign: 'center' }}>{loginErr}</p>}
-          <label>
+
+          {loginErr && (
+            <p
+              className="error"
+              style={{
+                color: '#dc2626',
+                background: '#fef2f2',
+                border: '1px solid #fecaca',
+                padding: '12px 14px',
+                borderRadius: '10px',
+                fontSize: '13px',
+                textAlign: 'center',
+                margin: 0
+              }}
+            >
+              {loginErr}
+            </p>
+          )}
+
+          <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>
             اسم المستخدم (Username)
             <input
               value={username}
@@ -777,9 +830,22 @@ export default function Studio(){
               spellCheck={false}
               placeholder="ادخل اسم المستخدم"
               autoComplete="username"
+              style={{
+                width: '100%',
+                height: '46px',
+                padding: '10px 14px',
+                borderRadius: '10px',
+                border: '1.5px solid #cbd5e1',
+                fontSize: '15px',
+                background: '#f8fafc',
+                color: '#0f172a',
+                outline: 'none',
+                boxSizing: 'border-box'
+              }}
             />
           </label>
-          <label>
+
+          <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>
             كلمة المرور (Password)
             <input
               type="password"
@@ -792,9 +858,42 @@ export default function Studio(){
               spellCheck={false}
               placeholder="••••••••"
               autoComplete="current-password"
+              style={{
+                width: '100%',
+                height: '46px',
+                padding: '10px 14px',
+                borderRadius: '10px',
+                border: '1.5px solid #cbd5e1',
+                fontSize: '15px',
+                background: '#f8fafc',
+                color: '#0f172a',
+                outline: 'none',
+                boxSizing: 'border-box'
+              }}
             />
           </label>
-          <button type="submit" className="storebutton" disabled={busy} style={{ width: '100%', marginTop: '10px' }}>
+
+          <button
+            type="submit"
+            className="storebutton"
+            disabled={busy}
+            style={{
+              width: '100%',
+              height: '48px',
+              borderRadius: '24px',
+              background: '#205b44',
+              color: '#ffffff',
+              fontSize: '16px',
+              fontWeight: '800',
+              border: 'none',
+              cursor: 'pointer',
+              marginTop: '8px',
+              boxShadow: '0 4px 14px rgba(32,91,68,0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
             {busy ? 'جار التحقق…' : 'تسجيل الدخول'}
           </button>
         </form>
