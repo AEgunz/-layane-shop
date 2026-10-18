@@ -436,6 +436,102 @@ table {
 }
 
 /* =========================================================
+   TRAFFIC OVERVIEW ANALYTICS BAR CHART CSS
+   ========================================================= */
+
+.chart {
+  padding: 20px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.chartbars {
+  height: 180px !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: flex-end !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+  width: 100% !important;
+  background: repeating-linear-gradient(to top, transparent 0px, transparent 39px, #f1f5f2 40px) !important;
+  padding: 10px 0 0 0 !important;
+  box-sizing: border-box !important;
+}
+
+.chartbars > div {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  height: 100% !important;
+  position: relative !important;
+}
+
+.chartbars span {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: #526258 !important;
+  margin-bottom: 4px !important;
+}
+
+.bar {
+  background: var(--page-theme, var(--brand, #205b44)) !important;
+  border-radius: 4px 4px 0 0 !important;
+  width: 70% !important;
+  max-width: 32px !important;
+  min-width: 10px !important;
+  transition: height 0.3s ease !important;
+}
+
+.chartbars small {
+  font-size: 10px !important;
+  white-space: nowrap !important;
+  margin-top: 8px !important;
+  color: #64748b !important;
+  font-weight: 600 !important;
+  text-align: center !important;
+}
+
+.legend {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-size: 12px !important;
+  color: #64748b !important;
+}
+
+.legend i {
+  width: 8px !important;
+  height: 8px !important;
+  background: var(--page-theme, var(--brand, #205b44)) !important;
+  border-radius: 2px !important;
+  display: inline-block !important;
+}
+
+.snapshot {
+  padding: 16px 20px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+}
+
+.snapshot > div {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  border-bottom: 1px solid #edf0ee !important;
+  padding-bottom: 10px !important;
+  font-size: 13px !important;
+  color: #64748b !important;
+}
+
+.snapshot strong {
+  font-size: 16px !important;
+  color: #1e293b !important;
+}
+
+/* =========================================================
    ADMIN DASHBOARD (.studio) MOBILE RESPONSIVE MEDIA QUERIES
    ========================================================= */
 
