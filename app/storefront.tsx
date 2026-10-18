@@ -2,7 +2,7 @@
 import {useState,useEffect,useRef,useId} from 'react';
 import {ShoppingBag,Star,ShieldCheck,Truck,RotateCcw,ChevronDown,Check,Plus,Minus,X,Lock,Phone,MapPin,User,Tag,Award,Sparkles,MessageCircle} from 'lucide-react';
 
-const money=(n:number)=>new Intl.NumberFormat('en-MA',{maximumFractionDigits:2}).format(n)+' DH';
+const formatDh = (n: number) => `${n} درهم`;
 
 export function Logo({brand}:any){
   return (
@@ -196,7 +196,7 @@ function OrderFormSection({
               >
                 {opt.badge && <span className="pill-badge">{opt.badge}</span>}
                 <span className="pill-text">{opt.label}</span>
-                <span className="pill-price">{money(optionTotal(opt, unitPrice))}</span>
+                <span className="pill-price">{formatDh(optionTotal(opt, unitPrice))}</span>
               </button>
             ))}
           </div>
@@ -213,21 +213,20 @@ function OrderFormSection({
           </div>
           <div className="summary-row">
             <span>{ar ? 'مصاريف التوصيل:' : 'Shipping:'}</span>
-            <strong style={{ color: '#16a34a' }}>{p.shipping ? money(p.shipping) : (ar ? 'توصيل مجاني 🚚' : 'Free Shipping')}</strong>
+            <strong style={{ color: '#16a34a' }}>{p.shipping ? formatDh(p.shipping) : (ar ? 'توصيل مجاني 🚚' : 'Free Shipping')}</strong>
           </div>
           <div className="summary-row total-row">
             <span>{ar ? 'المجموع النهائي:' : 'Total Amount:'}</span>
-            <strong className="final-price">{money(total)}</strong>
+            <strong className="final-price">{formatDh(total)}</strong>
           </div>
         </div>
 
         <button type="submit" className="submit-order-button" disabled={busy}>
-          <span className="button-pulse-glow" />
           <ShoppingBag size={22} />
           {busy ? (ar ? 'جار إرسال الطلب…' : 'Processing…') : (p.cta || (ar ? 'اضغط هنا للطلب والدفع عند الاستلام' : 'Confirm Order'))}
         </button>
 
-        <div className="security-badges">
+        <div className="security-badges" style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginTop: '14px', fontSize: '12px', color: '#64748b', fontWeight: '700' }}>
           <span><Lock size={14} /> {ar ? 'معلوماتك مشفرة وآمنة 100%' : '100% Encrypted & Secure'}</span>
           <span><ShieldCheck size={14} /> {ar ? 'الدفع نقداً بعد المعاينة عند الاستلام' : 'Cash on Delivery'}</span>
         </div>
@@ -438,7 +437,7 @@ export function ProductView({page,brand,preview}:any){
         <main className="storefront-main">
           <section className="hero-landing-section">
             <div className="product-title-badge">
-              <span className="badge-flame">🔥</span>
+              <span>🔥</span>
               <span>{ar ? 'المنتج الأكثر طلباً وشهرة بالمغرب' : 'Best Selling Product'}</span>
             </div>
 
@@ -446,14 +445,20 @@ export function ProductView({page,brand,preview}:any){
 
             {p.headline && <p className="landing-headline">{p.headline}</p>}
 
-            <div className="price-tag-wrapper" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', flexWrap: 'wrap', direction: 'ltr' }}>
-              <span className="current-price" style={{ color: themeColor, direction: 'ltr', display: 'inline-block' }}>{money(p.price || 249)}</span>
+            <div className="price-tag-wrapper">
+              <div className="price-badge-item main-price">
+                <span>{p.price || 249}</span>
+                <span>درهم</span>
+              </div>
               {p.comparePrice > (p.price || 249) && (
-                <span className="old-price" style={{ direction: 'ltr', display: 'inline-block' }}>{money(p.comparePrice)}</span>
+                <div className="price-badge-item old-price">
+                  <span>{p.comparePrice}</span>
+                  <span>درهم</span>
+                </div>
               )}
-              <span className="free-shipping-badge">
-                {p.shipping ? `توصيل: ${money(p.shipping)}` : (ar ? 'توصيل مجاني 🚚' : 'Free Shipping')}
-              </span>
+              <div className="free-shipping-badge">
+                {p.shipping ? `توصيل: ${p.shipping} درهم` : (ar ? 'توصيل مجاني 🚚' : 'Free Shipping')}
+              </div>
             </div>
 
             {firstImage && (
@@ -528,7 +533,7 @@ export function ProductView({page,brand,preview}:any){
         <div className="sticky-cta-inner">
           <div className="sticky-price-info">
             <span className="sticky-title">{productName}</span>
-            <span className="sticky-price">{money(p.price || 249)}</span>
+            <span className="sticky-price">{formatDh(p.price || 249)}</span>
           </div>
           <button className="sticky-cta-button" onClick={scrollToCheckout}>
             <ShoppingBag size={18} />
@@ -539,7 +544,7 @@ export function ProductView({page,brand,preview}:any){
 
       <footer className="storefront-footer">
         <div className="footer-content">
-          <p>© {new Date().getFullYear()} <span dir="ltr">{brand.name || 'layane-shop'}</span>. {ar ? 'جميع الحقوق محفوظة' : 'All rights reserved.'}</p>
+          <p>© {new Date().getFullYear()} <span>{brand.name || 'layane-shop'}</span>. {ar ? 'جميع الحقوق محفوظة' : 'All rights reserved.'}</p>
           <div className="footer-links">
             <button type="button" onClick={() => openPolicyModal('returns')}>{ar ? 'سياسة الإرجاع والاستبدال' : 'Returns'}</button>
             <button type="button" onClick={() => openPolicyModal('privacy')}>{ar ? 'سياسة الخصوصية' : 'Privacy Policy'}</button>
