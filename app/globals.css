@@ -419,10 +419,87 @@ nav button.selected {
   gap: 22px;
 }
 
+/* =========================================================
+   ADMIN DASHBOARD LANDING PAGES GRID & CARDS CSS
+   ========================================================= */
+
 .pagegrid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 22px;
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 22px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+@media (max-width: 1150px) {
+  .pagegrid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 700px) {
+  .pagegrid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+.pagecard {
+  border: 1px solid #dee6df !important;
+  background: #ffffff !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04) !important;
+  width: 100% !important;
+  height: auto !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.pagecover {
+  height: 180px !important;
+  max-height: 180px !important;
+  min-height: 180px !important;
+  position: relative !important;
+  background: #f1f5f0 !important;
+  overflow: hidden !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.pagecover img {
+  width: 100% !important;
+  height: 180px !important;
+  max-height: 180px !important;
+  min-height: 180px !important;
+  object-fit: cover !important;
+  object-position: center top !important;
+  display: block !important;
+}
+
+.pageinfo {
+  padding: 18px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  box-sizing: border-box !important;
+}
+
+.newpagecard {
+  min-height: 360px !important;
+  border: 2px dashed #cfddcf !important;
+  background: #f1f5ef !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 24px !important;
+  text-align: center !important;
+  border-radius: 12px !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  cursor: pointer !important;
 }
 
 .ordertoolbar {
@@ -734,11 +811,6 @@ table {
   }
 
   .overviewgrid, .settingsgrid {
-    grid-template-columns: 1fr !important;
-    gap: 16px !important;
-  }
-
-  .pagegrid {
     grid-template-columns: 1fr !important;
     gap: 16px !important;
   }
