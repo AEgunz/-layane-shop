@@ -128,7 +128,39 @@ function ImageField({value,onChange,label='صورة البانر الرئيسي�
       setBusy(false);
     }
   }
-  return <div className="imagefield"><label>{label}<input value={value} placeholder="https://… or upload an image" onChange={e=>onChange(e.target.value)}/></label><div>{value&&<img src={value} alt={label}/>}<label className="upload"><ImagePlus size={16}/>{busy?'Uploading…':'Upload image'}<input type="file" accept="image/png,image/jpeg,image/webp" onChange={upload} disabled={busy}/></label>{value&&<button type="button" className="textbutton" onClick={()=>onChange('')}>Remove</button>}</div>{error&&<p className="error">{error}</p>}</div>
+  return (
+    <div className="imagefield" style={{ marginBottom: '16px' }}>
+      <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px', fontWeight: '700', color: '#1e293b', marginBottom: '8px' }}>
+        {label}
+        <input
+          value={value}
+          placeholder="https://… or upload an image"
+          onChange={e => onChange(e.target.value)}
+          style={{ width: '100%', height: '42px', padding: '8px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '14px', background: '#fff' }}
+        />
+      </label>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px' }}>
+        {value && (
+          <img
+            src={value}
+            alt={label}
+            style={{ width: '56px', height: '56px', maxWidth: '56px', maxHeight: '56px', objectFit: 'contain', border: '1px solid #dce4db', borderRadius: '8px', flexShrink: 0, background: '#fff' }}
+          />
+        )}
+        <label className="upload" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', background: '#f8fafc', fontWeight: '600' }}>
+          <ImagePlus size={16} />
+          {busy ? 'Uploading…' : 'Upload image'}
+          <input type="file" accept="image/png,image/jpeg,image/webp" onChange={upload} disabled={busy} style={{ display: 'none' }} />
+        </label>
+        {value && (
+          <button type="button" className="textbutton" onClick={() => onChange('')} style={{ fontSize: '12px', color: '#dc2626', border: 0, background: 'transparent', cursor: 'pointer', textDecoration: 'underline' }}>
+            Remove
+          </button>
+        )}
+      </div>
+      {error && <p className="error">{error}</p>}
+    </div>
+  );
 }
 
 function ZipUploader({onHtmlLoaded,onImagesLoaded}:any){
