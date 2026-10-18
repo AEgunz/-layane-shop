@@ -945,7 +945,48 @@ export default function Studio(){
           ))}
         </nav>
         <div className="sidebottom">
-          {userPerms.includes('Brand settings')&&<div className="brandnote"><Globe size={21}/><strong>One brand. Every page.</strong><p>Your storefronts, connected.</p><button className="textbutton" onClick={()=>navigate('Brand settings')}>Manage your brand<ArrowUpRight size={14}/></button></div>}<div className="account" style={{justifyContent:'space-between'}}><div style={{display:'flex',alignItems:'center',gap:'10px'}}><div className="avatar" style={{background:'#205b44',color:'#fff',fontWeight:'800'}}>{activeUser.name[0].toUpperCase()}</div><div><strong style={{display:'block',fontSize:'13px',color:'#1a3328',lineHeight:'1.2'}}>{activeUser.name}</strong><small style={{color:'#526959',fontSize:'11px'}}>@{activeUser.username}</small></div></div><button type="button" onClick={handleLogout} title="Sign Out" style={{border:0,background:'transparent',cursor:'pointer',color:'#839487'}}><LogOut size={17}/></button></div></div>
+          {userPerms.includes('Brand settings') && (
+            <div
+              className="brandnote"
+              style={{
+                padding: '16px 14px',
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                boxSizing: 'border-box'
+              }}
+            >
+              <Globe size={22} style={{ color: '#205b44' }} />
+              <strong style={{ fontSize: '13px', fontWeight: '800', color: '#0f172a', margin: 0, lineHeight: '1.3' }}>One brand. Every page.</strong>
+              <p style={{ fontSize: '12px', color: '#64748b', margin: 0, lineHeight: '1.4' }}>Your storefronts, connected.</p>
+              <button
+                type="button"
+                className="textbutton"
+                onClick={() => navigate('Brand settings')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 14px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  background: '#ffffff',
+                  color: '#166534',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  width: 'fit-content',
+                  marginTop: '4px',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
+                }}
+              >
+                Manage your brand <ArrowUpRight size={14} />
+              </button>
+            </div>
+          )}<div className="account" style={{justifyContent:'space-between'}}><div style={{display:'flex',alignItems:'center',gap:'10px'}}><div className="avatar" style={{background:'#205b44',color:'#fff',fontWeight:'800'}}>{activeUser.name[0].toUpperCase()}</div><div><strong style={{display:'block',fontSize:'13px',color:'#1a3328',lineHeight:'1.2'}}>{activeUser.name}</strong><small style={{color:'#526959',fontSize:'11px'}}>@{activeUser.username}</small></div></div><button type="button" onClick={handleLogout} title="Sign Out" style={{border:0,background:'transparent',cursor:'pointer',color:'#839487'}}><LogOut size={17}/></button></div></div>
       </aside>
       <main>
         <header>
