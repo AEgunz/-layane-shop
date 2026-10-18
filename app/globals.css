@@ -30,6 +30,23 @@ button, input, select, textarea {
   font-family: 'Cairo', 'Tajawal', 'Alexandria', system-ui, sans-serif !important;
 }
 
+input, textarea, select {
+  background: #ffffff !important;
+  border: 1.5px solid #cbd5e1 !important;
+  border-radius: 8px !important;
+  color: #0f172a !important;
+  padding: 10px 14px !important;
+  font-size: 14px !important;
+  max-width: 100% !important;
+  outline: none !important;
+  box-sizing: border-box !important;
+}
+
+input:focus, textarea:focus, select:focus {
+  border-color: var(--page-theme, var(--brand, #205b44)) !important;
+  box-shadow: 0 0 0 3px rgba(32, 91, 68, 0.12) !important;
+}
+
 h1, h2, h3, h4, h5, h6 {
   font-family: 'Cairo', 'Changa', 'Tajawal', system-ui, sans-serif !important;
   font-weight: 800 !important;
@@ -413,20 +430,152 @@ nav button.selected {
   max-width: 390px;
 }
 
-.overviewgrid, .settingsgrid {
+.overviewgrid {
   display: grid;
   grid-template-columns: 1.8fr 1fr;
   gap: 22px;
 }
 
 /* =========================================================
-   ADMIN DASHBOARD LANDING PAGES GRID & CARDS CSS
+   SETTINGS GRID & BRAND SETTINGS FORM CSS
    ========================================================= */
+
+.settingsgrid {
+  display: grid !important;
+  grid-template-columns: 1.5fr 1fr !important;
+  gap: 24px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+@media (max-width: 900px) {
+  .settingsgrid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+.settingsbody {
+  padding: 24px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 18px !important;
+  box-sizing: border-box !important;
+}
+
+.settingsbody label {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: #1e293b !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  margin: 0 !important;
+}
+
+.settingsbody input {
+  width: 100% !important;
+}
+
+.panelfoot {
+  border-top: 1px solid #e9eee9 !important;
+  padding: 18px 25px !important;
+  background: #fafbf9 !important;
+}
+
+.colorinput {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  margin-top: 4px !important;
+}
+
+.colorinput input[type="color"] {
+  width: 44px !important;
+  height: 42px !important;
+  padding: 2px !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+}
+
+.colorinput input[type="text"] {
+  flex: 1 !important;
+}
+
+.imagefield {
+  margin-bottom: 12px !important;
+}
+
+.imagefield > label {
+  margin-bottom: 8px !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+}
+
+.imagefield > div {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  margin-top: 6px !important;
+}
+
+.imagefield img {
+  width: 56px !important;
+  height: 56px !important;
+  max-width: 56px !important;
+  max-height: 56px !important;
+  object-fit: contain !important;
+  border: 1px solid #e4eae2 !important;
+  border-radius: 8px !important;
+  flex-shrink: 0 !important;
+  background: #ffffff !important;
+}
+
+.brandpreview {
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.brandpreview img {
+  max-height: 48px !important;
+  max-width: 180px !important;
+  object-fit: contain !important;
+  display: block !important;
+}
+
+/* =========================================================
+   TOOLBAR & LANDING PAGES GRID SPACING
+   ========================================================= */
+
+.toolbar {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 14px !important;
+  margin-bottom: 24px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+@media (min-width: 768px) {
+  .toolbar {
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+  }
+}
+
+.tabs {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  overflow-x: auto !important;
+  padding-bottom: 4px !important;
+}
 
 .pagegrid {
   display: grid !important;
   grid-template-columns: repeat(3, 1fr) !important;
-  gap: 22px !important;
+  gap: 24px !important;
+  margin-top: 16px !important;
   width: 100% !important;
   box-sizing: border-box !important;
 }
@@ -476,6 +625,16 @@ nav button.selected {
   object-fit: cover !important;
   object-position: center top !important;
   display: block !important;
+}
+
+.pagecover .pill {
+  font-size: 11px !important;
+  padding: 4px 8px !important;
+  border-radius: 6px !important;
+  max-width: 90% !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
 }
 
 .pageinfo {
@@ -564,6 +723,29 @@ nav button.selected {
 table {
   width: 100%;
   border-collapse: collapse;
+}
+
+.productrow {
+  display: flex !important;
+  align-items: center !important;
+  gap: 16px !important;
+  padding: 16px 20px !important;
+  border-bottom: 1px solid #edf0ee !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  flex-wrap: wrap !important;
+}
+
+.productplaceholder {
+  width: 52px !important;
+  height: 48px !important;
+  border-radius: 8px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #eef3e9 !important;
+  color: #8c9d80 !important;
+  flex-shrink: 0 !important;
 }
 
 .empty {
