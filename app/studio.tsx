@@ -1268,12 +1268,66 @@ export default function Studio(){
                     <div>
                       <section className="panel brandpreview">
                         <div className="panelhead"><h2>Brand preview</h2></div>
-                        <div style={{'--brand':(branding||b).color} as any}>
-                          <Logo brand={branding||b}/>
-                          <div className="brandpreviewhero"><Leaf size={40}/><h2>Your brand.<br/>Every storefront.</h2><span className="storebutton">Order now</span></div>
+                        <div style={{ padding: '24px', '--brand': (branding || b).color } as any}>
+                          <Logo brand={branding || b} />
+                          <div
+                            className="brandpreviewhero"
+                            style={{
+                              background: '#f0fdf4',
+                              border: '1px solid #dcfce7',
+                              marginTop: '20px',
+                              borderRadius: '12px',
+                              padding: '28px 20px',
+                              textAlign: 'center',
+                              color: (branding || b).color || '#205b44',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              gap: '12px'
+                            }}
+                          >
+                            <Leaf size={38} style={{ color: (branding || b).color || '#205b44' }} />
+                            <h2 style={{ fontSize: '22px', fontWeight: '800', margin: 0, lineHeight: 1.3 }}>
+                              Your brand.<br />Every storefront.
+                            </h2>
+                            <span
+                              className="storebutton"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                padding: '10px 22px',
+                                borderRadius: '25px',
+                                background: (branding || b).color || '#205b44',
+                                color: '#ffffff',
+                                fontSize: '13px',
+                                fontWeight: '800'
+                              }}
+                            >
+                              Order now
+                            </span>
+                          </div>
                         </div>
                       </section>
-                      <div className="infobox"><ShieldCheck size={23}/><p>Only the store administrator can access orders and edit settings. Your site starts private; you can share it when you’re ready.</p></div>
+
+                      <div
+                        className="infobox"
+                        style={{
+                          padding: '16px 20px',
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: '12px',
+                          background: '#f0fdf4',
+                          border: '1px solid #bbf7d0',
+                          borderRadius: '12px',
+                          color: '#166534',
+                          marginTop: '16px'
+                        }}
+                      >
+                        <ShieldCheck size={22} style={{ flexShrink: 0, marginTop: '2px' }} />
+                        <p style={{ fontSize: '12px', lineHeight: '1.6', margin: 0, color: '#166534' }}>
+                          Only the store administrator can access orders and edit settings. Your site starts private; you can share it when you’re ready.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </form>
