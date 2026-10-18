@@ -446,10 +446,10 @@ export function ProductView({page,brand,preview}:any){
 
             {p.headline && <p className="landing-headline">{p.headline}</p>}
 
-            <div className="price-tag-wrapper">
-              <span className="current-price">{money(p.price || 249)}</span>
+            <div className="price-tag-wrapper" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', flexWrap: 'wrap', direction: 'ltr' }}>
+              <span className="current-price" style={{ color: themeColor, direction: 'ltr', display: 'inline-block' }}>{money(p.price || 249)}</span>
               {p.comparePrice > (p.price || 249) && (
-                <span className="old-price">{money(p.comparePrice)}</span>
+                <span className="old-price" style={{ direction: 'ltr', display: 'inline-block' }}>{money(p.comparePrice)}</span>
               )}
               <span className="free-shipping-badge">
                 {p.shipping ? `توصيل: ${money(p.shipping)}` : (ar ? 'توصيل مجاني 🚚' : 'Free Shipping')}
