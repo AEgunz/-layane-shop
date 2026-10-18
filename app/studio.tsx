@@ -810,7 +810,51 @@ export default function Studio(){
   const mainHomeId = data.mainHomePageId || (pages.find((p: any) => p.status === 'published')?.id || '');
 
   const visiblePages=pages.filter((p:any)=>(filter==='all'||p.status===filter)&&p.name.toLowerCase().includes(query.toLowerCase()));const visibleOrders=orders.filter((o:any)=>(filter==='all'||o.status===filter)&&[o.customer,o.phone,o.product,o.id].some((v:string)=>v.toLowerCase().includes(query.toLowerCase())));const dateControl=<select className="datefilter" aria-label="Date range" value={range} onChange={e=>setRange(e.target.value)}><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="all">All time</option></select>;
-  const performance=<div className="tablewrap"><table><thead><tr><th>Product</th><th>Visits</th><th>Orders</th><th>Conversion</th><th>Sales</th></tr></thead><tbody>{pages.filter((p:any)=>p.status!=='archived').map((p:any)=>{const v=visits.filter((x:any)=>x.page_id===p.id).reduce((n:number,x:any)=>n+x.count,0);const o=orders.filter((x:any)=>x.page_id===p.id);return <tr key={p.id}><td><div className="tableproduct">{p.image?<img src={p.image} alt=""/>:<span className="productplaceholder"><ShoppingBag size={18}/></span>}<span>{p.name}<small>/p/{p.slug}</small></span></div></td><td>{v.toLocaleString()}</td><td>{o.length}</td><td>{v?(o.length/v*100).toFixed(1):0}%</td><td className="strong">{money(o.filter((x:any)=>x.status==='delivered').reduce((n:number,x:any)=>n+o.total,0))}</td></tr>})}</tbody></table></div>;
+  const performance = (
+    <div className="tablewrap" style={{ overflowX: 'auto', width: '100%' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+        <thead>
+          <tr style={{ background: '#fafbf9', borderBottom: '1px solid #e2e8f0', textAlign: 'left' }}>
+            <th style={{ padding: '12px 18px', fontSize: '12px', fontWeight: '700', color: '#64748b' }}>Product</th>
+            <th style={{ padding: '12px 18px', fontSize: '12px', fontWeight: '700', color: '#64748b' }}>Visits</th>
+            <th style={{ padding: '12px 18px', fontSize: '12px', fontWeight: '700', color: '#64748b' }}>Orders</th>
+            <th style={{ padding: '12px 18px', fontSize: '12px', fontWeight: '700', color: '#64748b' }}>Conversion</th>
+            <th style={{ padding: '12px 18px', fontSize: '12px', fontWeight: '700', color: '#64748b' }}>Sales</th>
+          </tr>
+        </thead>
+        <tbody>
+          {pages.filter((p: any) => p.status !== 'archived').map((p: any) => {
+            const v = visits.filter((x: any) => x.page_id === p.id).reduce((n: number, x: any) => n + x.count, 0);
+            const o = orders.filter((x: any) => x.page_id === p.id);
+            const deliveredSales = o.filter((x: any) => x.status === 'delivered').reduce((n: number, x: any) => n + (x.total || 0), 0);
+            return (
+              <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                <td style={{ padding: '14px 18px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    {p.image ? (
+                      <img src={p.image} alt={p.name} style={{ width: '48px', height: '42px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }} />
+                    ) : (
+                      <div style={{ width: '48px', height: '42px', borderRadius: '8px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', flexShrink: 0 }}>
+                        <ShoppingBag size={18} />
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+                      <strong style={{ fontSize: '14px', fontWeight: '800', color: '#0f172a', lineHeight: '1.3' }}>{p.name}</strong>
+                      <span dir="ltr" style={{ fontSize: '12px', color: '#64748b', fontFamily: 'monospace' }}>/p/{p.slug}</span>
+                    </div>
+                  </div>
+                </td>
+                <td style={{ padding: '14px 18px', fontWeight: '700', color: '#1e293b' }}>{v.toLocaleString()}</td>
+                <td style={{ padding: '14px 18px', fontWeight: '700', color: '#1e293b' }}>{o.length}</td>
+                <td style={{ padding: '14px 18px', fontWeight: '700', color: '#1e293b' }}>{v ? (o.length / v * 100).toFixed(1) : 0}%</td>
+                <td style={{ padding: '14px 18px', fontWeight: '800', color: '#16a34a' }}>{money(deliveredSales)}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
 
   const orderTable=(rows:any[])=>rows.length?(
     <div className="tablewrap">
