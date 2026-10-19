@@ -306,7 +306,43 @@ export function ProductView({page,brand,preview}:any){
         }
       } catch {}
     }
-  }, [brand?.pixelId, p, productName]);
+
+    const gaId = brand?.gaMeasurementId || '';
+    if (typeof window !== 'undefined' && gaId) {
+      if (!(window as any).gtag) {
+        const script = document.createElement('script');
+        script.async = true;
+        script.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
+        document.head.appendChild(script);
+
+        (window as any).dataLayer = (window as any).dataLayer || [];
+        function gtag() {
+          (window as any).dataLayer.push(arguments);
+        }
+        (window as any).gtag = gtag;
+        gtag('js', new Date());
+        gtag('config', gaId, { page_path: window.location.pathname });
+      }
+
+      try {
+        (window as any).gtag('config', gaId, { page_path: window.location.pathname });
+        if (productName) {
+          (window as any).gtag('event', 'view_item', {
+            currency: 'MAD',
+            value: p.price || 249,
+            items: [
+              {
+                item_id: p.slug || 'product',
+                item_name: productName,
+                price: p.price || 249,
+                quantity: 1
+              }
+            ]
+          });
+        }
+      } catch {}
+    }
+  }, [brand?.pixelId, brand?.gaMeasurementId, p, productName]);
 
   function scrollToCheckout() {
     const el = document.getElementById('checkout-form');
@@ -405,6 +441,26 @@ export function ProductView({page,brand,preview}:any){
             content_name: productName,
             value: totalAmount,
             currency: 'MAD'
+          });
+        } catch {}
+      }
+
+      if (typeof window !== 'undefined' && (window as any).gtag && brand?.gaMeasurementId) {
+        try {
+          (window as any).gtag('event', 'purchase', {
+            transaction_id: data.reference,
+            value: totalAmount,
+            currency: 'MAD',
+            tax: 0,
+            shipping: p.shipping || 0,
+            items: [
+              {
+                item_id: p.slug || 'product',
+                item_name: productName,
+                price: effectiveUnitPrice,
+                quantity
+              }
+            ]
           });
         } catch {}
       }

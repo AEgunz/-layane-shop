@@ -115,6 +115,7 @@ export async function POST(r:Request){
         logo:z.string().max(10000000).refine(safeImage),
         phone:z.string().max(40),
         pixelId:z.string().max(100).optional().default('1116296790985534'),
+        gaMeasurementId:z.string().max(100).optional().default(''),
         currency:z.literal('MAD')
       }).parse(x.brand);
       await db().prepare("DELETE FROM settings WHERE key=?").bind('brand').run();

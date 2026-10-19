@@ -12,6 +12,7 @@ export const defaultBrand = {
   logo: '/logo.png',
   phone: '+212660286462',
   pixelId: '1116296790985534',
+  gaMeasurementId: '',
   currency: 'MAD'
 };
 

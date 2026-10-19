@@ -1444,6 +1444,18 @@ export default function Studio(){
                           <label>Brand color<div className="colorinput"><input aria-label="Choose brand color" type="color" value={(branding||b).color} onChange={e=>setBranding({...branding||b,color:e.target.value})}/><input pattern="#[a-fA-F0-9]{6}" value={(branding||b).color} onChange={e=>setBranding({...branding||b,color:e.target.value})}/></div></label>
                           <label>Customer support phone<input value={(branding||b).phone} onChange={e=>setBranding({...branding||b,phone:e.target.value})} placeholder="+212 …"/></label>
                           <label>Meta Facebook Pixel ID<input value={(branding||b).pixelId||'1116296790985534'} onChange={e=>setBranding({...branding||b,pixelId:e.target.value})} placeholder="1116296790985534" dir="ltr"/><small style={{color:'#205b44',fontWeight:'700'}}>Pixel ID: 1116296790985534 مفعّل لتتبع الزيارات والطلبات إعلانات الفيسبوك والانستغرام</small></label>
+                          <label>
+                            Google Analytics 4 (GA4 ID)
+                            <input
+                              value={(branding||b).gaMeasurementId || ''}
+                              onChange={e=>setBranding({...branding||b,gaMeasurementId:e.target.value.trim()})}
+                              placeholder="مثال: G-XXXXXXXXXX"
+                              dir="ltr"
+                            />
+                            <small style={{color:'#205b44',fontWeight:'700'}}>
+                              معرّف القياس (Measurement ID) لتتبع جميع الزيارات، المشاهدات، والطلبات تلقائياً عبر إحصائيات تحليلات جوجل GA4
+                            </small>
+                          </label>
                           <label>Currency<input value="Moroccan dirham (MAD / DH)" disabled/></label>
                         </div>
                         <div className="panelfoot"><button className="primary" disabled={busy}>{busy?'Saving…':'Save brand settings'}</button></div>
